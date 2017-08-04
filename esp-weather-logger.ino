@@ -32,7 +32,7 @@
 #include "global.h"
 
 #include "credentials.h"
-
+AsyncWebSocket ws("/ws");
 
 
 // #define DISABLEOUT
@@ -246,14 +246,15 @@ void setup() {
   SPIFFS.begin(); // Not really needed, checked inside library and started if needed
   ESPHTTPServer.begin(&SPIFFS);
   /* add setup code here */
-
+ ws.onEvent(onWsEvent);
+  ESPHTTPServer.addHandler(&ws);
 
   if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable)
   {
     client.setServer(ESPHTTPServer._config.MQTTHost.c_str(), ESPHTTPServer._config.MQTTPort);
     client.setCallback(callback);
   }
-
+ 
 
 
   pinMode(A0, INPUT);
@@ -451,3 +452,22 @@ boolean IsNumeric(String str) {
 }
 
 
+void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
+  if (type == WS_EVT_CONNECT) {
+   
+  for (int i = 0; i < ulNoMeasValues; i++) {
+      int idx = (i + currentIndex) % ulNoMeasValues;
+      //Serial.print(idx);
+       float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
+       temp=pMWbuf[idx].temp;
+       pres=pMWbuf[idx].pressure;
+       abshum=pMWbuf[idx].humid;
+      // Serial.print(NTP.getTimeDateString(pMWbuf[idx].timestamp));
+      Serial.printf("ws i=%d idx=%d time=%ul.", i, idx, pMWbuf[idx].timestamp);
+      Serial.print("m Temp: "); Serial.print(temp/100);
+       client->printf("%d %d %d",idx,pMWbuf[idx].timestamp ,pMWbuf[idx].temp);
+    }
+   // server->binary(client->id(), pMWbuf, ulNoMeasValues*sizeof(MW));
+     
+  }
+}

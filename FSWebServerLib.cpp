@@ -9,7 +9,6 @@
 #include "credentials.h"
 AsyncFSWebServer ESPHTTPServer(80);
 
-
 float absFeuchte(float temp, float luftfeuchte, float pressure) {
   float abs_feuchte = 0;
   float temp_k = temp + 273.15;
@@ -192,6 +191,7 @@ void AsyncFSWebServer::begin(FS* fs) {
     AsyncWebServer::begin();
     serverInit(); // Configure and start Web server
 	
+
     MDNS.begin(_config.deviceName.c_str()); // I've not got this to work. Need some investigation.
     MDNS.addService("http", "tcp", 80);
     ConfigureOTA(_httpAuth.wwwPassword.c_str());
@@ -1549,6 +1549,51 @@ void AsyncFSWebServer::serverInit() {
         request->send(200, "text/json", json);
         json = String();
     });
+
+ //get heap status, analog input value and all GPIO statuses in one json call
+    on("/datarange", HTTP_GET, [](AsyncWebServerRequest *request) {
+        String json = "{";
+        json += "\"time\":\"" + NTP.getTimeStr() + "\",";
+        json += "\"date\":\"" + NTP.getDateStr() + "\",";
+        json += "\"heap\":" + String(ESP.getFreeHeap());
+        json += ", \"analog\":" + String(analogRead(A0));
+        json += ", \"data_cnt\":" + String(ulNoMeasValues);
+        json += "}";
+        request->send(200, "text/json", json);
+        json = String();
+    });
+    //ws.binary(client->id(), logged, logSize);
+
+  on("/dataval", HTTP_GET, [](AsyncWebServerRequest *request) {
+  DEBUGLOG("Arg number: %d\r\n", request->args());
+  uint16_t idx=0;
+    if (request->args() > 0)  // Read hash
+    {
+        for (uint8_t i = 0; i < request->args(); i++) {
+            DEBUGLOG("Arg %s: %s\r\n", request->argName(i).c_str(), request->arg(i).c_str());
+            if (request->argName(i) == "n") {
+                idx = request->arg(i).toInt();
+                continue;
+            }
+        }
+        if ((idx>=0)&&(idx<ulNoMeasValues)){
+        String json = "{";
+        json += "\"time\":\"" + NTP.getTimeStr() + "\",";
+        json += "\"date\":\"" + NTP.getDateStr() + "\",";
+        json += "\"heap\":" + String(ESP.getFreeHeap());
+        
+        json+=",\"timestamp\":"+String(pMWbuf[idx].timestamp);
+        json+=",\"pressure\":"+String(pMWbuf[idx].pressure);
+        json+=",\"temp\":"+String(pMWbuf[idx].temp);
+        json+=",\"abshumid\":"+String(pMWbuf[idx].humid);
+        
+       request->send(200, "text/json", json);
+        }
+        else 
+        {
+           request->send(404, "text/plain", "invalid range");}
+    }});
+    
     //server.begin(); --> Not here
     DEBUGLOG("HTTP server started\r\n");
 }
@@ -1587,3 +1632,4 @@ int AsyncFSWebServer::WiFiStatus()
 {
 	return WiFi.status();
 	}
+

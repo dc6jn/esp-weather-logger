@@ -34,6 +34,19 @@ extern const byte PinModeShift[6];
 extern const byte PinModePin[6];
 //extern const string Topics[6];
 
+extern uint16_t ulMeasCount ;  // values already measured
+extern uint16_t ulNoMeasValues; // size of array
+extern uint16_t currentIndex;
+
+typedef struct
+{
+  time_t timestamp;
+  int16_t temp;
+  uint32_t pressure;
+  uint16_t humid;
+} MW;
+
+extern MW *pMWbuf;
 
 #define ModePin5   B00010000
 #define ModePinA0  B00010000
@@ -60,14 +73,6 @@ float absFeuchte(float temp, float luftfeuchte, float pressure);
 
 #define CONFIG_FILE "/config.json"
 #define SECRET_FILE "/secret.json"
-
-typedef struct
-{
-  time_t timestamp;
-  int16_t temp;
-  uint32_t pressure;
-  uint16_t humid;
-} MW;
 
 
 typedef struct {
@@ -133,7 +138,7 @@ protected:
     long wifiDisconnectedSince = 0;
     String _browserMD5 = "";
     uint32_t _updateSize = 0;
-
+  
     WiFiEventHandler onStationModeConnectedHandler, onStationModeDisconnectedHandler;
 
     //uint currentWifiStatus;
