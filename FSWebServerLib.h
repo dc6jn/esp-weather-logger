@@ -57,7 +57,7 @@ extern MW *pMWbuf;
 
 float absFeuchte(float temp, float luftfeuchte, float pressure);
 
-#define RELEASE  // Comment to enable debug output
+//#define RELEASE  // Comment to enable debug output
 
 #define DBG_OUTPUT_PORT Serial
 
@@ -106,7 +106,7 @@ typedef struct {
 	String MQTTpassword;
 	String MQTTHost;
 	int MQTTPort;
-	int RefreshInterval;
+	int MQTTRefreshInterval;
 	String MQTTTopic;
 	String ClientName;
 	int PWMFreq;
@@ -154,8 +154,8 @@ protected:
     bool save_config();
     bool loadHTTPAuth();
     bool saveHTTPAuth();
-    void configureWifiAP();
-    void configureWifi();
+    bool configureWifiAP();
+    bool configureWifi();
     void ConfigureOTA(String password);
     void serverInit();
 

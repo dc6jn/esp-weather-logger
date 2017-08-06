@@ -1,6 +1,6 @@
 /*
   Name:		ESP8266-weather-logger.ino
-  Created:	
+  Created:
   Author:	dc6jn
   Credits:      this sketch is heavily based on MQTT_ESP8266.ino made by Lee
 		to see the original work follow https://github.com/species5618/MQTT_ESP8266
@@ -35,15 +35,6 @@
 AsyncWebSocket ws("/ws");
 
 
-// #define DISABLEOUT
-//#define RELEASE  // Comment to enable debug output
-#define DBG_OUTPUT_PORT Serial
-
-#ifndef RELEASE
-#define DEBUGLOG(...) DBG_OUTPUT_PORT.printf(__VA_ARGS__)
-#else
-#define DEBUGLOG(...)
-#endif
 
 
 long lastinputstate[6] = { 0, 0, 0, 0, 0, 0 };
@@ -79,34 +70,37 @@ FunctionPointer rpmList[1] = { rpm0};//, rpm1, rpm2, rpm3, rpm4, rpm5 };
 void callback(char* topic, byte* payload, unsigned int length) {
   String message = "";
   for (int i = 0; i < length; i++) {
-    DEBUGLOG((char)payload[i]);
-    DEBUGLOG("\r\n");
     message += (char)payload[i];
   }
+  Serial.print(message);
 }
 
 void reconnect() {
   // Loop until we're reconnected
   while (!client.connected()) {
-    DEBUGLOG(F("Attempting MQTT connection..."));
-    // Attempt to connect
-    if (client.connect(ESPHTTPServer._config.ClientName.c_str(), ESPHTTPServer._config.MQTTUser.c_str(), ESPHTTPServer._config.MQTTpassword.c_str(),
-                       ("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), 1, true, "DOWN")) {
-      DEBUGLOG("connected");
-      // Once connected, publish an announcement...
-      //client.publish("outTopic", "hello world");
-      //// ... and resubscribe
-      //client.subscribe("inTopic");
-      client.unsubscribe("#");
-      client.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), "UP", 1);
+   if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable){
+      Serial.print(F("Attempting MQTT connection..."));
+      // Attempt to connect
+      if (client.connect(ESPHTTPServer._config.ClientName.c_str(), ESPHTTPServer._config.MQTTUser.c_str(), ESPHTTPServer._config.MQTTpassword.c_str(),
+                         ("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), 1, true, "DOWN")) {
+        Serial.print("connected\n");
+        // Once connected, publish an announcement...
+        //client.publish("outTopic", "hello world");
+        //// ... and resubscribe
+        //client.subscribe("inTopic");
+        client.unsubscribe("#");
+        client.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), "UP", 1);
+      }
+      else {
+        Serial.print(F("failed, rc="));
+        Serial.print(client.state());
+        Serial.print(F(" try again in 5 seconds\n"));
+        // Wait 5 seconds before retrying
+        delay(5000);
+      }
     }
-    else {
-      DEBUGLOG("failed, rc=");
-      DEBUGLOG(client.state());
-      DEBUGLOG(" try again in 5 seconds");
-      // Wait 5 seconds before retrying
-      delay(5000);
-    }
+    else{ Serial.print(F("MQTT disabled by config"));
+      }
   }
 
 
@@ -246,7 +240,7 @@ void setup() {
   SPIFFS.begin(); // Not really needed, checked inside library and started if needed
   ESPHTTPServer.begin(&SPIFFS);
   /* add setup code here */
- ws.onEvent(onWsEvent);
+  ws.onEvent(onWsEvent);
   ESPHTTPServer.addHandler(&ws);
 
   if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable)
@@ -254,7 +248,7 @@ void setup() {
     client.setServer(ESPHTTPServer._config.MQTTHost.c_str(), ESPHTTPServer._config.MQTTPort);
     client.setCallback(callback);
   }
- 
+
 
 
   pinMode(A0, INPUT);
@@ -287,7 +281,7 @@ void loop() {
     lastsecond2 = second();
     if (lastsecond2 % 5 == 0)
     {
-      DEBUGLOG(NTP.getUptimeString());
+      Serial.print(NTP.getUptimeString());
       float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
 
       char buffer[10];
@@ -355,7 +349,7 @@ void loop() {
             int A0 = analogRead(A0);
             if (lastA0 != A0 && updateCounter[APINUPDATECOUNTER] == 0)
             {
-              updateCounter[APINUPDATECOUNTER] = ESPHTTPServer._config.RefreshInterval;
+              updateCounter[APINUPDATECOUNTER] = ESPHTTPServer._config.MQTTRefreshInterval;
               lastA0 = A0;
               String topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + ApinTopic;
               client.publish(topic.c_str(), String(A0).c_str(), 1);
@@ -400,15 +394,15 @@ void loop() {
     for (int i = 0; i < ulNoMeasValues; i++) {
       int idx = (i + currentIndex) % ulNoMeasValues;
       //Serial.print(idx);
-       float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
-       temp=pMWbuf[idx].temp;
-       pres=pMWbuf[idx].pressure;
-       abshum=pMWbuf[idx].humid;
+      float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
+      temp = pMWbuf[idx].temp;
+      pres = pMWbuf[idx].pressure;
+      abshum = pMWbuf[idx].humid;
       // Serial.print(NTP.getTimeDateString(pMWbuf[idx].timestamp));
       Serial.printf("i=%d idx=%d time=%ul.", i, idx, pMWbuf[idx].timestamp);
-      Serial.print("m Temp: "); Serial.print(temp/100);
+      Serial.print("m Temp: "); Serial.print(temp / 100);
       //Serial.print(" Hum: "); Serial.print(relhum);
-      Serial.print(" absHum: "); Serial.print(abshum/100);
+      Serial.print(" absHum: "); Serial.print(abshum / 100);
       Serial.print(" Druck: "); Serial.println(pres / 100);
     }
   }
@@ -452,22 +446,22 @@ boolean IsNumeric(String str) {
 }
 
 
-void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len){
+void onWsEvent(AsyncWebSocket * server, AsyncWebSocketClient * client, AwsEventType type, void * arg, uint8_t *data, size_t len) {
   if (type == WS_EVT_CONNECT) {
-   
-  for (int i = 0; i < ulNoMeasValues; i++) {
+
+    for (int i = 0; i < ulNoMeasValues; i++) {
       int idx = (i + currentIndex) % ulNoMeasValues;
       //Serial.print(idx);
-       float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
-       temp=pMWbuf[idx].temp;
-       pres=pMWbuf[idx].pressure;
-       abshum=pMWbuf[idx].humid;
+      float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
+      temp = pMWbuf[idx].temp;
+      pres = pMWbuf[idx].pressure;
+      abshum = pMWbuf[idx].humid;
       // Serial.print(NTP.getTimeDateString(pMWbuf[idx].timestamp));
       Serial.printf("ws i=%d idx=%d time=%ul.", i, idx, pMWbuf[idx].timestamp);
-      Serial.print("m Temp: "); Serial.print(temp/100);
-       client->printf("%d %d %d",idx,pMWbuf[idx].timestamp ,pMWbuf[idx].temp);
+      Serial.print("m Temp: "); Serial.print(temp / 100);
+      client->printf("%d %d %d", idx, pMWbuf[idx].timestamp , pMWbuf[idx].temp);
     }
-   // server->binary(client->id(), pMWbuf, ulNoMeasValues*sizeof(MW));
-     
+    // server->binary(client->id(), pMWbuf, ulNoMeasValues*sizeof(MW));
+
   }
 }

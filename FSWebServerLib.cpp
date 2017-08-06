@@ -174,10 +174,10 @@ void AsyncFSWebServer::begin(FS* fs) {
         if (_apConfig.APenable) {
             configureWifiAP(); // Set AP mode if AP button was pressed
         } else {
-            configureWifi(); // Set WiFi config
+            if (!configureWifi()) { configureWifiAP();} // Set WiFi config
         }
     } else {
-        configureWifi(); // Set WiFi config
+        if (!configureWifi()){  configureWifiAP();} // Set WiFi config
     }
     DEBUGLOG("Open http://");
     DEBUGLOG(_config.deviceName.c_str());
@@ -260,7 +260,7 @@ bool AsyncFSWebServer::load_config() {
 	_config.MQTTTopic = json["MQTTTopic"].as<const char *>();
 	_config.ClientName = json["ClientName"].as<const char *>();
 	_config.MQTTPort = json["MQTTPort"].as<int>();
-	_config.RefreshInterval = json["RefreshInterval"].as<int>();
+	_config.MQTTRefreshInterval = json["RefreshInterval"].as<int>();
 	_config.DeviceMode = json["DeviceMode"].as<byte>();
 	_config.PinModes = json["PinModes"].as<long>();
 	_config.PWMFreq = json["PWMFreq"].as<int>();
@@ -305,7 +305,7 @@ void AsyncFSWebServer::defaultConfig() {
 	_config.MQTTHost = "mqtt.cloudemqtt.com";
 	_config.MQTTPort = 1883;
 	_config.ClientName = "UNSET";
-	_config.RefreshInterval = 5;
+	_config.MQTTRefreshInterval = 5;
 	_config.PWMFreq = 1000;
 	_config.pin3t = 0;
 	_config.pin4t = 0;
@@ -360,7 +360,7 @@ bool AsyncFSWebServer::save_config() {
 	json["MQTTpassword"] = _config.MQTTpassword;
 	json["MQTTHost"] = _config.MQTTHost;
 	json["MQTTPort"] = _config.MQTTPort;
-	json["RefreshInterval"] = _config.RefreshInterval;
+	json["RefreshInterval"] = _config.MQTTRefreshInterval;
 	json["MQTTTopic"] = _config.MQTTTopic;
 	json["ClientName"] = _config.ClientName;
 	json["PWMFreq"] = _config.PWMFreq;
@@ -457,7 +457,7 @@ void AsyncFSWebServer::handle() {
     ArduinoOTA.handle();
 }
 
-void AsyncFSWebServer::configureWifiAP() {
+bool AsyncFSWebServer::configureWifiAP() {
     DEBUGLOG(__PRETTY_FUNCTION__);
     DEBUGLOG("\r\n");
     //WiFi.disconnect();
@@ -473,9 +473,10 @@ void AsyncFSWebServer::configureWifiAP() {
     if (CONNECTION_LED >= 0) {
         flashLED(CONNECTION_LED, 3, 250);
     }
+    return true;
 }
 
-void AsyncFSWebServer::configureWifi() {
+bool AsyncFSWebServer::configureWifi() {
 	WiFi.disconnect();
     WiFi.mode(WIFI_STA);
     //currentWifiStatus = WIFI_STA_DISCONNECTED;
@@ -487,9 +488,12 @@ void AsyncFSWebServer::configureWifi() {
     }
     //delay(2000);
     //delay(5000); // Wait for WiFi
-
+    byte timeout=20;
     while (!WiFi.isConnected()) {
         delay(1000);
+        timeout--;
+        if (timeout==0)
+          return false;
        Serial.print(".");
     }
     DBG_OUTPUT_PORT.println();
@@ -503,6 +507,7 @@ void AsyncFSWebServer::configureWifi() {
     DEBUGLOG("DNS:        %s\r\n", WiFi.dnsIP().toString().c_str());
     DEBUGLOG(__PRETTY_FUNCTION__);
     DEBUGLOG("\r\n");
+    return true;
 }
 
 void AsyncFSWebServer::ConfigureOTA(String password) {
@@ -563,6 +568,7 @@ void AsyncFSWebServer::onWiFiDisconnected(WiFiEventStationModeDisconnected data)
         wifiDisconnectedSince = millis();
     }
     DEBUGLOG("\r\nDisconnected for %d seconds\r\n", (int)((millis() - wifiDisconnectedSince) / 1000));
+    if ((int)((millis() - wifiDisconnectedSince) / 1000)>30) configureWifiAP();
 }
 
 void AsyncFSWebServer::handleFileList(AsyncWebServerRequest *request) {
@@ -874,7 +880,7 @@ void AsyncFSWebServer::send_mqtt_configuration_values_html(AsyncWebServerRequest
 	values += "User|" + (String)_config.MQTTUser + "|input\n";
 	values += "Pass|" + (String)_config.MQTTpassword + "|input\n";
 	values += "en|" + (String)(_config.DeviceMode & MQTTEnable ? "checked" : "") + "|chk\n";
-	values += "upd|" + (String)_config.RefreshInterval + "|input\n";
+	values += "upd|" + (String)_config.MQTTRefreshInterval + "|input\n";
 	values += "topic|" + (String)_config.MQTTTopic + "|input\n";
 	values += "ftopic|/" + (String)_config.MQTTTopic + "/" + _config.ClientName + "/|div\n";
 
@@ -1120,7 +1126,7 @@ void AsyncFSWebServer::send_MQTT_configuration_html(AsyncWebServerRequest *reque
 			}
 			if (request->argName(i) == "upd") 
 			{
-				_config.RefreshInterval = request->arg(i).toInt();
+				_config.MQTTRefreshInterval = request->arg(i).toInt();
 				continue;
 			}
 			if (request->argName(i) == "topic") 
