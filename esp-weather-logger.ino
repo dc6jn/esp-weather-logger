@@ -45,7 +45,7 @@ int lastA0 = -1;
 bool TimeSync = false;
 
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient MQTTclient(espClient);
 
 
 //Freq Managment, lasy coding style for speed
@@ -77,30 +77,28 @@ void callback(char* topic, byte* payload, unsigned int length) {
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
-   if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable){
+  while (!MQTTclient.connected()) {
+   if (ESPHTTPServer._config.MQTTRefreshInterval>0){
       Serial.print(F("Attempting MQTT connection..."));
       // Attempt to connect
-      if (client.connect(ESPHTTPServer._config.ClientName.c_str(), ESPHTTPServer._config.MQTTUser.c_str(), ESPHTTPServer._config.MQTTpassword.c_str(),
+      if (MQTTclient.connect(ESPHTTPServer._config.ClientName.c_str(), ESPHTTPServer._config.MQTTUser.c_str(), ESPHTTPServer._config.MQTTpassword.c_str(),
                          ("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), 1, true, "DOWN")) {
         Serial.print("connected\n");
         // Once connected, publish an announcement...
         //client.publish("outTopic", "hello world");
         //// ... and resubscribe
         //client.subscribe("inTopic");
-        client.unsubscribe("#");
-        client.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), "UP", 1);
+        MQTTclient.unsubscribe("#");
+        MQTTclient.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), "UP", 1);
       }
       else {
         Serial.print(F("failed, rc="));
-        Serial.print(client.state());
+        Serial.print(MQTTclient.state());
         Serial.print(F(" try again in 5 seconds\n"));
         // Wait 5 seconds before retrying
         delay(5000);
       }
     }
-    else{ Serial.print(F("MQTT disabled by config"));
-      }
   }
 
 
@@ -119,7 +117,7 @@ void reconnect() {
       {
         //subscribe to MQTT
         String topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + Topics[i];
-        client.subscribe(topic.c_str(), 1);
+        MQTTclient.subscribe(topic.c_str(), 1);
       }
     }
     else
@@ -131,7 +129,7 @@ void reconnect() {
     {
       //subscribe to MQTT for totlaiser reset
       String topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + Topics[i] + "_TR";
-      client.subscribe(topic.c_str(), 1);
+      MQTTclient.subscribe(topic.c_str(), 1);
 
     }
   }
@@ -245,8 +243,8 @@ void setup() {
 
   if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable)
   {
-    client.setServer(ESPHTTPServer._config.MQTTHost.c_str(), ESPHTTPServer._config.MQTTPort);
-    client.setCallback(callback);
+    MQTTclient.setServer(ESPHTTPServer._config.MQTTHost.c_str(), ESPHTTPServer._config.MQTTPort);
+    MQTTclient.setCallback(callback);
   }
 
 
@@ -313,7 +311,7 @@ void loop() {
     TimeSync = true;
     if (ESPHTTPServer._config.DeviceMode & MQTTEnable == MQTTEnable)
     {
-      client.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/Boot").c_str(),
+      MQTTclient.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/Boot").c_str(),
                      (NTP.getTimeStr() + " " + NTP.getDateStr()).c_str());
     }
 
@@ -321,14 +319,14 @@ void loop() {
 
   if (ESPHTTPServer.WiFiStatus() == 3)
   {
-    if (!client.connected()) {
+    if (!MQTTclient.connected()) {
       Serial.println("try to connect mqtt Client");
       reconnect();
       Serial.println("mqtt Connect Client");
 
 
     }
-    client.loop();
+    MQTTclient.loop();
 
     if (second() != lastsecond)
     { // do refresh
@@ -352,7 +350,7 @@ void loop() {
               updateCounter[APINUPDATECOUNTER] = ESPHTTPServer._config.MQTTRefreshInterval;
               lastA0 = A0;
               String topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + ApinTopic;
-              client.publish(topic.c_str(), String(A0).c_str(), 1);
+              MQTTclient.publish(topic.c_str(), String(A0).c_str(), 1);
             }
           }
 
@@ -364,15 +362,15 @@ void loop() {
           relhum = bme.readFloatHumidity();
           abshum = absFeuchte(temp, relhum, pres);
           String topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + "TempC";
-          client.publish(topic.c_str(), String(temp).c_str(), 1);
+          MQTTclient.publish(topic.c_str(), String(temp).c_str(), 1);
 
           topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + "RelHumidity";
-          client.publish(topic.c_str(), String(relhum).c_str(), 1);
+          MQTTclient.publish(topic.c_str(), String(relhum).c_str(), 1);
           topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + "AbsHumidity";
-          client.publish(topic.c_str(), String(abshum).c_str(), 1);
+          MQTTclient.publish(topic.c_str(), String(abshum).c_str(), 1);
 
           topic = "/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/" + "Pressure";
-          client.publish(topic.c_str(), String(pres).c_str(), 1);
+          MQTTclient.publish(topic.c_str(), String(pres).c_str(), 1);
         }
       }
     }
@@ -380,11 +378,11 @@ void loop() {
   }
   else
   {
-    if (client.connected())
+    if (MQTTclient.connected())
     {
       Serial.println("Disconnect Client");
       Serial.println(espClient.connected());
-      client.disconnect();
+      MQTTclient.disconnect();
     }
   }
 
