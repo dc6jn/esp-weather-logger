@@ -35,7 +35,7 @@ float absFeuchte(float temp, float luftfeuchte, float pressure) {
   //    dew_point = log10(((luftfeuche/100)*sdd)/6.1078);
   //    v = log10(dd/6.1078);
   abs_feuchte1 = ((pressure * mol_dampf) / gas_konst) * (dd / temp_k);
-  abs_feuchte1 = (round(abs_feuchte1 * 10)) / 10;
+  //abs_feuchte1 = (round(abs_feuchte1 * 10)) / 10;
   return abs_feuchte1;
 }
 
