@@ -1,29 +1,31 @@
 <!DOCTYPE html>
+<head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>ESP Administration</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
+<body id="index">
 <strong>Administration</strong>
 <hr>
-<a href="general.html" style="width:250px" class="btn btn--m btn--blue" >General Configuration</a>
+<a href="general.html"  class="btn btn--m btn--blue" >General Configuration</a>
 <br>
-<a href="config.html" style="width:250px" class="btn btn--m btn--blue" >Network Configuration</a>
+<a href="config.html"  class="btn btn--m btn--blue" >Network Configuration</a>
 <br>
-<a href="info.html"   style="width:250px"  class="btn btn--m btn--blue" >Network Information</a>
+<a href="info.html"    class="btn btn--m btn--blue" >Network Information</a>
 <br>
-<a href="ntp.html"   style="width:250px"  class="btn btn--m btn--blue" >NTP Settings</a>
+<a href="ntp.html"    class="btn btn--m btn--blue" >NTP Settings</a>
 <br>
-<a href="system.html"   style="width:250px"  class="btn btn--m btn--blue" >System Settings</a>
+<a href="system.html"   class="btn btn--m btn--blue" >System Settings</a>
 <br>
-<a href="mqtt.html" style="width:250px" class="btn btn--m btn--blue">MQTT Settings</a><br>
+<a href="mqtt.html"  class="btn btn--m btn--blue">MQTT Settings</a><br>
 
 
 <script>
 	window.onload = function ()
 	{
-		load("style.css","css", function()
+		load("chartist.css","css", function()
 		{
-			load("microajax.js","js", function()
-			{
-				// Do something after load...
-			});
+
 		});
 	}
 	function load(e,t,n) {
@@ -47,5 +49,6 @@
 	}
 
 </script>
-
+</body>
+</html>
 

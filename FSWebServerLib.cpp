@@ -1568,8 +1568,8 @@ void AsyncFSWebServer::serverInit() {
         request->send(200, "text/json", json);
         json = String();
     });
-    //ws.binary(client->id(), logged, logSize);
-
+ 
+    
   on("/dataval", HTTP_GET, [](AsyncWebServerRequest *request) {
   DEBUGLOG("Arg number: %d\r\n", request->args());
   uint16_t idx=0;
@@ -1597,8 +1597,56 @@ void AsyncFSWebServer::serverInit() {
         }
         else 
         {
-           request->send(404, "text/plain", "invalid range");}
+           request->send(404, "text/plain", "invalid range");
+        }
     }});
+    
+   //=====================================
+
+  
+    on("/dat", HTTP_GET, [this](AsyncWebServerRequest *request) {
+      AsyncWebServerResponse *response = request->beginResponse(
+      String("text/plain"),
+      sizeof(MW)*ulNoMeasValues,
+      [](uint8_t *buffer, size_t maxLen, size_t alreadySent) -> size_t {
+        if ((sizeof(MW)*ulNoMeasValues+alreadySent)>maxLen) {
+          // We have more to read than fits in maxLen Buffer
+          memcpy((char*)buffer,(char*)pMWbuf +alreadySent, maxLen);
+          return maxLen;
+        }
+        // Ok, last chunk
+        memcpy((char*)buffer, (char*)pMWbuf +alreadySent, sizeof(MW)*ulNoMeasValues-alreadySent);
+        return (sizeof(MW)*ulNoMeasValues-alreadySent); // Return from here to end of indexhtml
+      }
+  );
+    response->addHeader("Server", "MyServerString");
+    request->send(response);  
+    });
+ //---------------
+   on("/datc", HTTP_GET, [this](AsyncWebServerRequest *request) {
+  
+   AsyncWebServerResponse *response = request->beginChunkedResponse(
+    "text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+   
+    size_t arrLen =   sizeof(MW)*ulNoMeasValues;
+    size_t leftToWrite = arrLen - index;
+    if(! leftToWrite)
+     return 0;//end of transfer
+    size_t willWrite = (leftToWrite > maxLen)?maxLen:leftToWrite;
+    memcpy(buffer, (char*)buffer+index, willWrite);
+    index += willWrite;
+    return willWrite;
+  });
+ 
+    response->addHeader("Server", "MyServerString");
+    request->send(response);  
+    });
+ //---------------
+   
+
+   //°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
+    
+    
     
     //server.begin(); --> Not here
     DEBUGLOG("HTTP server started\r\n");

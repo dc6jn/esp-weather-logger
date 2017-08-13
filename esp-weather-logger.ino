@@ -292,6 +292,7 @@ void loop() {
       Serial.print(" absHum: "); Serial.print(abshum);
       Serial.print(" Druck: "); Serial.println(pres / 100);
       currentIndex = (currentIndex + 1) % ulNoMeasValues;
+      Serial.print("current index ");Serial.println(currentIndex);
       if (TimeSync) {
         pMWbuf[currentIndex].timestamp = NTP.getTime();
       }
@@ -300,9 +301,9 @@ void loop() {
         pMWbuf[currentIndex].timestamp = now();
 
       }
-      pMWbuf[currentIndex].temp = temp * 100;
-      pMWbuf[currentIndex].pressure = pres;
-      pMWbuf[currentIndex].humid = abshum * 100;
+      pMWbuf[currentIndex].temp = round(temp * 100);
+      pMWbuf[currentIndex].pressure = round(pres);
+      pMWbuf[currentIndex].humid = round(abshum * 100);
     }
   }
 

@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>ESP Monitor</title>
+
+
+
+
+    <script type="text/javascript">
+
+    var timestamp=[],heap=[],analog=[],digi=[],temp=[],pressure=[],relhum=[],abshumid=[];
+    var reloadPeriod = 1000;
+    var running = false;
+    var once = false;
+
+    function getDateString(value){
+    return Intl.DateTimeFormat('de-DE', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hour12: false     // setting 24 hour format
+}).format(value);
+         //d=new Date(value);
+         //var datestring = ("0" + d.getDate()).slice(-2) + "-" + ("0"+(d.getMonth()+1)).slice(-2) +
+         //" " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+        //return datestring;
+    }
+    function sleep(ms)
+	{
+		var dt = new Date();
+		dt.setTime(dt.getTime() + ms);
+		while (new Date().getTime() < dt.getTime());
+	}
+
+
+    function loadValues(){
+      if(once) return;
+      sleep(2000);
+      var xh = new XMLHttpRequest();
+      xh.responseType = "arraybuffer";
+
+      xh.open("GET", "dat", true);
+      xh.onreadystatechange = function(){
+        if (xh.readyState == 4){
+          if(xh.status == 200) {
+            var buffer = xh.response; // Note: not oReq.responseText
+			  if (buffer) {
+                console.log("ready");
+    var message;
+    message = document.getElementById("message");
+    message.innerHTML = "";
+				var byteArray = new Uint8Array(buffer);
+				var i = 0;
+				 var d = new Date();
+                var sucessful=0;
+				while (i < byteArray.byteLength) {
+					//typedef struct
+					//{
+					//  time_t timestamp;
+					//  int16_t temp;
+					//  uint32_t pressure;
+					//  uint16_t humid;
+					//} MW
+					try{
+						var dataview = new DataView(buffer,i);
+							ts=dataview.getUint32(0,true)*1000; //timestamp in unix utc
+							ts+=(d.getTimezoneOffset() * 60000);
+							timestamp=new Date(ts);
+                            t=dataview.getInt16(4,true)/100;
+                            p=dataview.getUint32(8,true)/100;
+                            h=dataview.getUint16(12,true)/100;
+                            console.log(i,timestamp,t,p,h);
+                             if ((t!=0)&&(p!=0)&&(h!=0)){
+                                temp.push({x:timestamp,y:t});
+                                pressure.push({x:timestamp,y:p});
+                                abshumid.push({x:timestamp,y:h});
+                                sucessful+=1;
+                                }
+						}
+                    catch(err) {
+                             message.innerHTML = "Error: " + err + " at index "+i;
+						}
+					finally{
+						}
+
+							i=i+16;
+				}
+                message.innerHTML = message.innerHTML+"<br>Erstellt am "+d.toLocaleDateString()+" aus "+ sucessful+"  von "+i/16+" Messwerten";
+				// Initialize a Line chart in the container with the ID chart1
+
+                var chart1=new Chartist.Line('#chart1',
+                {
+                    series: [
+                    { name: 'Temperatur', data: temp }
+
+                    ]
+                },
+                {
+                    axisX: {
+                        type: Chartist.FixedScaleAxis,
+                        divisor: 5,
+                        labelInterpolationFnc: function(value) {
+                        return getDateString(value);
+                    }
+                },
+
+
+
+
+
+                });
+ var chart2=new Chartist.Line('#chart2',
+                {
+                    series: [
+                    { name: 'Feuchte', data: abshumid },
+                    ]
+                },
+                {
+                    axisX: {
+                        type: Chartist.FixedScaleAxis,
+                        divisor: 5,
+                        labelInterpolationFnc: function(value) {
+
+                        return getDateString(value);
+                    }
+                }
+                });
+ var chart3=new Chartist.Line('#chart3',
+                {
+                    series: [
+                      { name: 'Luftdruck', data: pressure }
+                    ]
+                },
+                {
+                    axisX: {
+                        type: Chartist.FixedScaleAxis,
+                        divisor: 5,
+                        labelInterpolationFnc: function(value) {
+                       return getDateString(value);
+                    }
+                }
+                });
+
+
+			 }
+
+          // if(running)
+          //    setTimeout(loadValues, reloadPeriod);
+          } else running = false;
+        }
+      };
+
+      xh.send(null);
+      once=true;
+    };
+
+
+    </script>
+</head>
+<body id="index"  >
+<!-- Site content goes here !-->
+<div id="message"></div>
+<p>Temperatur in °C</p>
+<div class="ct-chart "  id="chart1"></div>
+<p>absolute Luftfeuchte in g/m³</p>
+<div class="ct-chart "  id="chart2"></div>
+<p>Luftdruck in hPa</p>
+<div class="ct-chart"  id="chart3"></div>
+
+<a href="index.htm"  class="btn btn--s">Index</a>
+<a href="admin.html" class="btn btn--s">&nbsp;Network Information</a>
+<a href="general.html"  class="btn btn--s">General Configuration</a>
+<script>	window.onload = function ()
+	{
+		load("chartist.css","css", function()
+		{
+			load("microajax.js","js", function()
+			{
+				// Do something after load...
+                load("chartist.js","js", function()
+                            {
+                                // Do something after load...
+                            loadValues()
+                            });
+			});
+		});
+	}
+	function load(e,t,n) {
+		if("js"==t) {
+			var a=document.createElement("script");
+			a.src=e,
+			a.type="text/javascript",
+			a.async=!1,
+			a.onload=function() { n() },
+			document.getElementsByTagName("head")[0].appendChild(a)
+		}
+		else if("css"==t) {
+			var a=document.createElement("link");
+			a.href=e,
+			a.rel="stylesheet",
+			a.type="text/css",
+			a.async=!1,
+			a.onload=function(){ n() },
+			document.getElementsByTagName("head")[0].appendChild(a)
+		}
+	}
+
+</script>
+</body>
+</html>
+
+

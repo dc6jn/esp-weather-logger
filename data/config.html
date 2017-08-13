@@ -78,7 +78,7 @@
     </tr>
     <tr>
         <td align="center">
-            <a href="javascript:GetState(); getNetwork();" style="width:150px" class="btn btn--m btn--blue">Refresh</a>
+            <a href="javascript:GetState(); getNetwork();"  class="btn btn--m btn--blue">Refresh</a>
         </td>
     </tr>
 </table>
@@ -139,7 +139,7 @@
     }
 
     window.onload = function () {
-        load("style.css", "css", function () {
+        load("chartist.css", "css", function () {
             load("microajax.js", "js", function () {
                 setValues("/admin/values");
                 setTimeout(GetState, 3000);
