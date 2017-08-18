@@ -1,216 +1,260 @@
 <!DOCTYPE html>
 <html>
-<head>
-    <meta http-equiv="Content-type" content="text/html; charset=utf-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1"/>
-    <title>ESP Monitor</title>
+    <head>
+        <meta http-equiv="Content-type" content="text/html; charset=utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1"/>
+        <title>ESP Monitor</title>
+        <script type="text/javascript">
+            var timestamp = [], heap = [], analog = [], digi = [], temp = [], pressure = [], relhum = [], abshumid = [];
+            var reloadPeriod = 1000;
+            var running = false;
+            var once = false;
+            function getDateString(value) {
+                if (window.Intl) {
+                    return Intl.DateTimeFormat('de-DE', {
+                        month: '2-digit',
+                        day: '2-digit',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        //second: '2-digit',
+                        hour12: false     // setting 24 hour format
+                    }).format(value);
+                } else {
+                    d = new Date(value);
+                    var datestring = ("0" + d.getDate()).slice(-2) + "-" + ("0" + (d.getMonth() + 1)).slice(-2) +
+                            " " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
+                    return datestring;
+                }
+            }
+            function sleepa(ms)
+            {
+                var dt = new Date();
+                dt.setTime(dt.getTime() + ms);
+                while (new Date().getTime() < dt.getTime())
+                    ;
+            }
+            function sleep(ms) {
+                return new Promise(resolve => setTimeout(resolve, ms));
+            }
+
+            function loadValues() {
+                if (once)
+                    return;
+                // sleep(200).then(()=>{});
+
+                var xh = new XMLHttpRequest();
+                xh.responseType = "arraybuffer";
+
+                xh.open("GET", "dat", true);
+                xh.onreadystatechange = function () {
+                    if (xh.readyState == 4) {
+                        if (xh.status == 200) {
+                            var buffer = xh.response; // Note: not oReq.responseText
+                            if (buffer) {
+                                console.log("ready");
+                                var message;
+                                var reverse = false;
+                                message = document.getElementById("message");
+                                message.innerHTML = "";
+                                var byteArray = new Uint8Array(buffer);
+                                var i = 0;
+                                var d = new Date();
+                                var sucessful = 0;
+                                var tsmin = Number.MAX_VALUE, tsmax = -Number.MAX_VALUE;
+                                var tmin = Number.MAX_VALUE, tmax = -Number.MAX_VALUE;
+                                var pmin = Number.MAX_VALUE, pmax = -Number.MAX_VALUE;
+                                var hmin = Number.MAX_VALUE, hmax = -Number.MAX_VALUE;
+                                while (i < byteArray.byteLength) {
+                                    //typedef struct
+                                    //{
+                                    //  time_t timestamp;
+                                    //  int16_t temp;
+                                    //  uint32_t pressure;
+                                    //  uint16_t humid;
+                                    //} MW
+                                    try {
+                                        var dataview = new DataView(buffer, i);
+                                        ts = dataview.getUint32(0, true) * 1000; //timestamp in unix utc
 
 
+                                        t = dataview.getInt16(4, true) / 100;
+                                        p = dataview.getUint32(8, true) / 100;
+                                        h = dataview.getUint16(12, true) / 100;
 
+                                        if ((t != 0) && (p != 0) && (h != 0)) {
+                                            if (ts < 1500000000000) {
+                                                ts = Date.now() - ts;
+                                                reverse = true;
+                                            } else {
+                                                off = d.getTimezoneOffset() * 60000;  //offset in Stunden * conversion
+                                                ts += off;
+                                            }
+                                            timestamp = new Date(ts);
+                                            console.log(i, ts, timestamp, t, p, h);
 
-    <script type="text/javascript">
+                                            if (ts < tsmin)
+                                            {
+                                                tsmin = ts;
+                                            }
+                                            if (ts > tsmax)
+                                            {
+                                                tsmax = ts;
+                                            }
+                                            if (t < tmin) {
+                                                tmin = t;
+                                            }
+                                            ;
+                                            if (t > tmax) {
+                                                tmax = t;
+                                            }
+                                            if (p < pmin) {
+                                                pmin = p;
+                                            }
 
-    var timestamp=[],heap=[],analog=[],digi=[],temp=[],pressure=[],relhum=[],abshumid=[];
-    var reloadPeriod = 1000;
-    var running = false;
-    var once = false;
+                                            if (p > pmax) {
+                                                pmax = p;
+                                            }
+                                            if (h < hmin) {
+                                                hmin = h;
+                                            }
 
-    function getDateString(value){
-    return Intl.DateTimeFormat('de-DE', {
-    month: '2-digit',
-    day: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-    second: '2-digit',
-    hour12: false     // setting 24 hour format
-}).format(value);
-         //d=new Date(value);
-         //var datestring = ("0" + d.getDate()).slice(-2) + "-" + ("0"+(d.getMonth()+1)).slice(-2) +
-         //" " + ("0" + d.getHours()).slice(-2) + ":" + ("0" + d.getMinutes()).slice(-2);
-        //return datestring;
-    }
-    function sleep(ms)
-	{
-		var dt = new Date();
-		dt.setTime(dt.getTime() + ms);
-		while (new Date().getTime() < dt.getTime());
-	}
+                                            if (h > hmax) {
+                                                hmax = h;
+                                            }
 
+                                            temp.push({x: timestamp, y: t});
+                                            pressure.push({x: timestamp, y: p});
+                                            abshumid.push({x: timestamp, y: h});
+                                            sucessful += 1;
+                                        }
+                                    } catch (err) {
+                                        message.innerHTML = "Error: " + err + " at index " + i;
+                                    } finally {
+                                    }
 
-    function loadValues(){
-      if(once) return;
-      sleep(2000);
-      var xh = new XMLHttpRequest();
-      xh.responseType = "arraybuffer";
-
-      xh.open("GET", "dat", true);
-      xh.onreadystatechange = function(){
-        if (xh.readyState == 4){
-          if(xh.status == 200) {
-            var buffer = xh.response; // Note: not oReq.responseText
-			  if (buffer) {
-                console.log("ready");
-    var message;
-    message = document.getElementById("message");
-    message.innerHTML = "";
-				var byteArray = new Uint8Array(buffer);
-				var i = 0;
-				 var d = new Date();
-                var sucessful=0;
-				while (i < byteArray.byteLength) {
-					//typedef struct
-					//{
-					//  time_t timestamp;
-					//  int16_t temp;
-					//  uint32_t pressure;
-					//  uint16_t humid;
-					//} MW
-					try{
-						var dataview = new DataView(buffer,i);
-							ts=dataview.getUint32(0,true)*1000; //timestamp in unix utc
-							ts+=(d.getTimezoneOffset() * 60000);
-							timestamp=new Date(ts);
-                            t=dataview.getInt16(4,true)/100;
-                            p=dataview.getUint32(8,true)/100;
-                            h=dataview.getUint16(12,true)/100;
-                            console.log(i,timestamp,t,p,h);
-                             if ((t!=0)&&(p!=0)&&(h!=0)){
-                                temp.push({x:timestamp,y:t});
-                                pressure.push({x:timestamp,y:p});
-                                abshumid.push({x:timestamp,y:h});
-                                sucessful+=1;
+                                    i = i + 16;
                                 }
-						}
-                    catch(err) {
-                             message.innerHTML = "Error: " + err + " at index "+i;
-						}
-					finally{
-						}
 
-							i=i+16;
-				}
-                message.innerHTML = message.innerHTML+"<br>Erstellt am "+d.toLocaleDateString()+" aus "+ sucessful+"  von "+i/16+" Messwerten";
-				// Initialize a Line chart in the container with the ID chart1
 
-                var chart1=new Chartist.Line('#chart1',
-                {
-                    series: [
-                    { name: 'Temperatur', data: temp }
+                                message.innerHTML = message.innerHTML + "<br>Erstellt am " + d.toLocaleDateString() + " um " + d.toLocaleTimeString() + " Uhr aus " + sucessful + "  von " + i / 16 + " Messwerten";
+                                message.innerHTML = message.innerHTML + "<br>Messzeitraum von " + getDateString(tsmin) + " bis " + getDateString(tsmax) + " " + tmin + "/" + tmax + "°C, " + hmin + "/" + hmax + " g/m³ H2O, " + pmin + "/" + pmax + "hPa"
+                                // Initialize a Line chart in the container with the ID chart1
+                                var x_options = {
+                                    type: Chartist.FixedScaleAxis,
+                                    divisor: 5,
+                                    labelInterpolationFnc: function (value) {
+                                        return getDateString(value);
+                                    }
+                                };
 
-                    ]
-                },
-                {
-                    axisX: {
-                        type: Chartist.FixedScaleAxis,
-                        divisor: 5,
-                        labelInterpolationFnc: function(value) {
-                        return getDateString(value);
+                                var options = {
+                                    axisX: {
+                                        type: Chartist.FixedScaleAxis,
+                                        divisor: 6,
+                                        labelInterpolationFnc: function (value) {
+                                            return getDateString(value);
+                                        },
+                                        showLabel: true,
+                                        showGrid: true
+                                    },
+                                    // Options for Y-Axis
+                                    axisY: {
+                                        showLabel: true,
+                                        showGrid: true,
+                                        onlyInteger: false
+                                    },
+                                    // Specify a fixed width for the chart as a string (i.e. '100px' or '50%')
+                                    width: undefined,
+                                    // Specify a fixed height for the chart as a string (i.e. '100px' or '50%')
+                                    height: undefined,
+                                    // If the line should be drawn or not
+                                    showLine: true,
+                                    // If dots should be drawn or not
+                                    showPoint: true,
+                                    showArea: true,
+                                    reverseData: reverse,
+                                    low: undefined,
+                                    high: undefined
+                                };
+
+                                var chart1 = new Chartist.Line('#chart1',
+                                        {series: [{className: 'ct-series-a', name: 'Temperatur', data: temp}]}, options );
+
+                                var chart2 = new Chartist.Line('#chart2',
+                                        {series: [{className: 'ct-series-c', name: 'Feuchte', data: abshumid}]}, options);
+                                var chart3 = new Chartist.Line('#chart3',
+                                        {series: [{className: 'ct-series-d', name: 'Luftdruck', data: pressure}]}, options);
+                            }
+
+                            // if(running)
+                            //    setTimeout(loadValues, reloadPeriod);
+                        } else
+                            running = false;
                     }
-                },
+                };
 
+                xh.send(null);
+                once = true;
+            }
+            ;
 
+        </script>
+    </head>
+    <body id="index">
+        <h1>Wetterdaten</h1>
+        <div id="message"></div>
+        <p>Temperatur in °C</p>
+        <div class="ct-chart " id="chart1"></div>
+        <p>absolute Luftfeuchte in g/m³</p>
+        <div class="ct-chart " id="chart2"></div>
+        <p>Luftdruck in hPa</p>
+        <div class="ct-chart" id="chart3"></div>
+        <div class="ct-chart" id="chart4"></div>
 
-
-
-                });
- var chart2=new Chartist.Line('#chart2',
+        <a href="index.htm" class="btn btn--s">Index</a>
+        <a href="admin.html" class="btn btn--s">&nbsp;Network Information</a>
+        <a href="general.html" class="btn btn--s">General Configuration</a>
+        <script>
+            window.onload = function ()
+            {
+                load("chartist.css", "css", function ()
                 {
-                    series: [
-                    { name: 'Feuchte', data: abshumid },
-                    ]
-                },
-                {
-                    axisX: {
-                        type: Chartist.FixedScaleAxis,
-                        divisor: 5,
-                        labelInterpolationFnc: function(value) {
-
-                        return getDateString(value);
-                    }
-                }
-                });
- var chart3=new Chartist.Line('#chart3',
-                {
-                    series: [
-                      { name: 'Luftdruck', data: pressure }
-                    ]
-                },
-                {
-                    axisX: {
-                        type: Chartist.FixedScaleAxis,
-                        divisor: 5,
-                        labelInterpolationFnc: function(value) {
-                       return getDateString(value);
-                    }
-                }
-                });
-
-
-			 }
-
-          // if(running)
-          //    setTimeout(loadValues, reloadPeriod);
-          } else running = false;
-        }
-      };
-
-      xh.send(null);
-      once=true;
-    };
-
-
-    </script>
-</head>
-<body id="index"  >
-<!-- Site content goes here !-->
-<div id="message"></div>
-<p>Temperatur in °C</p>
-<div class="ct-chart "  id="chart1"></div>
-<p>absolute Luftfeuchte in g/m³</p>
-<div class="ct-chart "  id="chart2"></div>
-<p>Luftdruck in hPa</p>
-<div class="ct-chart"  id="chart3"></div>
-
-<a href="index.htm"  class="btn btn--s">Index</a>
-<a href="admin.html" class="btn btn--s">&nbsp;Network Information</a>
-<a href="general.html"  class="btn btn--s">General Configuration</a>
-<script>	window.onload = function ()
-	{
-		load("chartist.css","css", function()
-		{
-			load("microajax.js","js", function()
-			{
-				// Do something after load...
-                load("chartist.js","js", function()
-                            {
-                                // Do something after load...
+                    load("microajax.js", "js", function ()
+                    {
+                        load("chartist.js", "js", function ()
+                        {
                             loadValues()
-                            });
-			});
-		});
-	}
-	function load(e,t,n) {
-		if("js"==t) {
-			var a=document.createElement("script");
-			a.src=e,
-			a.type="text/javascript",
-			a.async=!1,
-			a.onload=function() { n() },
-			document.getElementsByTagName("head")[0].appendChild(a)
-		}
-		else if("css"==t) {
-			var a=document.createElement("link");
-			a.href=e,
-			a.rel="stylesheet",
-			a.type="text/css",
-			a.async=!1,
-			a.onload=function(){ n() },
-			document.getElementsByTagName("head")[0].appendChild(a)
-		}
-	}
+                        });
+                    });
+                });
+            }
+            function load(e, t, n) {
+                if ("js" == t) {
+                    var a = document.createElement("script");
+                    a.src = e,
+                            a.type = "text/javascript",
+                            a.async = !1,
+                            a.onload = function () {
+                                n()
+                            },
+                            document.getElementsByTagName("head")[0].appendChild(a)
+                } else if ("css" == t) {
+                    var a = document.createElement("link");
+                    a.href = e,
+                            a.rel = "stylesheet",
+                            a.type = "text/css",
+                            a.async = !1,
+                            a.onload = function () {
+                                n()
+                            },
+                            document.getElementsByTagName("head")[0].appendChild(a)
+                }
+            }
 
-</script>
-</body>
+
+        </script>
+
+    </body>
 </html>
 
 
