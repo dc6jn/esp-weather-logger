@@ -22,21 +22,14 @@
 #include <ArduinoJson.h>
 #include "credentials.h"
 
-extern float rawTempC;
-extern float rawTempF;
-extern float rawHumidity;
-extern float filterTempC;
-extern float filterTempF;
-extern float filterHumidity;;
-
 extern const long PinModeMask[6];
 extern const byte PinModeShift[6];
 extern const byte PinModePin[6];
 //extern const string Topics[6];
 
-extern uint16_t ulMeasCount ;  // values already measured
-extern uint16_t ulNoMeasValues; // size of array
-extern uint16_t currentIndex;
+extern uint8_t ulMeasCount ;  // values already measured
+extern uint8_t ulNoMeasValues; // size of array
+extern uint8_t currentIndex;
 
 typedef struct
 {
@@ -59,10 +52,10 @@ float absFeuchte(float temp, float luftfeuchte, float pressure);
 
 //#define RELEASE  // Comment to enable debug output
 
-#define DBG_OUTPUT_PORT Serial
+//#define DBG_OUTPUT_PORT Serial
 
 #ifndef RELEASE
-#define DEBUGLOG(...) DBG_OUTPUT_PORT.printf(__VA_ARGS__)
+#define DEBUGLOG(...) Serial.printf(__VA_ARGS__)
 #else
 #define DEBUGLOG(...)
 #endif
@@ -110,6 +103,7 @@ typedef struct {
 	String MQTTTopic;
 	String ClientName;
 	int PWMFreq;
+    int LogFreq;
 	int pin3t;
 	int pin4t;
 
@@ -125,6 +119,8 @@ public:
 	String GetMacAddressLS();
 	String zeroPad(int number);
 	strConfig _config;
+   bool configureWifiAP();
+    bool configureWifi();
 	int WiFiStatus();
 
 
@@ -140,6 +136,8 @@ protected:
     uint32_t _updateSize = 0;
   
     WiFiEventHandler onStationModeConnectedHandler, onStationModeDisconnectedHandler;
+    WiFiEventHandler onSoftAPModeStationConnectedhandler;
+    WiFiEventHandler onSoftAPModeStationDisconnectedhandler;
 
     //uint currentWifiStatus;
 
@@ -154,14 +152,14 @@ protected:
     bool save_config();
     bool loadHTTPAuth();
     bool saveHTTPAuth();
-    bool configureWifiAP();
-    bool configureWifi();
+   
     void ConfigureOTA(String password);
     void serverInit();
 
     void onWiFiConnected(WiFiEventStationModeConnected data);
     void onWiFiDisconnected(WiFiEventStationModeDisconnected data);
-
+    void onSoftAPModeStationConnected(WiFiEventSoftAPModeStationConnected data);
+    void onSoftAPModeStationDisconnected(WiFiEventSoftAPModeStationDisconnected data);
     static void s_secondTick(void* arg);
 
     String getMacAddress();
