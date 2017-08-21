@@ -4,8 +4,13 @@
 #include "SparkFunBME280.h"
 #include "Wire.h"
 #include "FSWebServerLib.h"
-unsigned long previousMillis = 0;
+unsigned long lastLogMillis = 0;
+unsigned long lastMQTTloop = 0;
+unsigned long wifitimeout = 0;
 const long interval = 10000;
+unsigned long count100ms;
+unsigned long count1s;
+unsigned long count10s;
 //Global sensor object
 BME280 bme;
 // storage for Measurements; keep some mem free; allocate remainder
@@ -13,9 +18,9 @@ BME280 bme;
 #define MEAS_SPAN_H 24
 
 
-uint16_t ulMeasCount = 0;  // values already measured
-uint16_t ulNoMeasValues = 0; // size of array
-uint16_t currentIndex = 0;
+uint8_t ulMeasCount = 0;  // values already measured
+uint8_t ulNoMeasValues = 0; // size of array
+uint8_t currentIndex = 0;
 
 MW *pMWbuf;
 
@@ -49,7 +54,7 @@ int  updateCounter[9] = { 0,0,0,0,0,0,0,0,0 }; //MQTT update interval counter ex
 #define HUMUPDATECOUNTER 8
 
 int intMode[6] = { CHANGE, CHANGE, CHANGE, CHANGE, CHANGE, CHANGE };
-
+void handleMQTT();
 
 typedef void(*FunctionPointer)();
 
