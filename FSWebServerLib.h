@@ -56,8 +56,10 @@ float absFeuchte(float temp, float luftfeuchte, float pressure);
 
 #ifndef RELEASE
 #define DEBUGLOG(...) Serial.printf(__VA_ARGS__)
+//#define DEBUGLOGF(...) Serial.printf_P(__VA_ARGS__)
 #else
 #define DEBUGLOG(...)
+//#define DEBUGLOGF(...)
 #endif
 
 #define CONNECTION_LED -1 // Connection LED pin (Built in). -1 to disable

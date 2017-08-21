@@ -261,12 +261,12 @@ void loop() {
       pres = bme.readFloatPressure();
       relhum = bme.readFloatHumidity();
       abshum = absFeuchte(temp, relhum, pres);
-      Serial.print(F("Temp: ")); Serial.print(temp);
-      Serial.print(F(" Hum: ")); Serial.print(relhum);
-      Serial.print(F(" absHum: ")); Serial.print(abshum);
-      Serial.print(F(" Druck: ")); Serial.println(pres / 100);
       currentIndex = (currentIndex + 1) % ulNoMeasValues;
-      Serial.print(F("current index ")); Serial.println(currentIndex);
+      Serial.print(F("current index ")); Serial.print(currentIndex);
+      Serial.print(F("T: ")); Serial.print(temp);
+      Serial.print(F(" rHum: ")); Serial.print(relhum);
+      Serial.print(F(" aHum: ")); Serial.print(abshum);
+      Serial.print(F(" Druck: ")); Serial.println(pres / 100);
       if (TimeSync) {
         pMWbuf[currentIndex].timestamp = NTP.getTime();
       }
@@ -361,7 +361,7 @@ void handleMQTT() {
           MQTTclient.publish(topic.c_str(), String(abshum).c_str(), 1);
 
           topic = mainTopic + "/Pressure";
-          MQTTclient.publish(topic.c_str(), String(pres).c_str(), 1);
+          MQTTclient.publish(topic.c_str(), String(pres/100).c_str(), 1);
         }
 
 

@@ -271,12 +271,12 @@ bool AsyncFSWebServer::load_config() {
     _config.pin3t = json["pin3t"].as<int>();
     _config.pin4t = json["pin4t"].as<int>();
 
-    Serial.println(F("Data initialized."));
-    Serial.printf("SSID: %s ", _config.ssid.c_str());
-    Serial.printf("PASS: %s\r\n", _config.password.c_str());
-    Serial.printf("NTP Server: %s\r\n", _config.ntpServerName.c_str());
+    DEBUGLOG("Data initialized.\n");
+    DEBUGLOG("SSID: %s ", _config.ssid.c_str());
+    DEBUGLOG("PASS: %s\r\n", _config.password.c_str());
+    DEBUGLOG("NTP Server: %s\r\n", _config.ntpServerName.c_str());
     //Serial.printf("Connection LED: %d\n", config.connectionLed);
-    Serial.println(__PRETTY_FUNCTION__);
+    DEBUGLOG(__PRETTY_FUNCTION__);
     return true;
 }
 
@@ -308,13 +308,13 @@ void AsyncFSWebServer::defaultConfig() {
     _config.pin3t = 0;
     _config.pin4t = 0;
     save_config();
-    Serial.printf(__PRETTY_FUNCTION__);
-    Serial.printf("\r\n");
+    DEBUGLOG(__PRETTY_FUNCTION__);
+    DEBUGLOG("\r\n");
 }
 
 bool AsyncFSWebServer::save_config() {
     //flag_config = false;
-    Serial.println(F("Save config"));
+    DEBUGLOG("Save config");
     DynamicJsonBuffer jsonBuffer(512);
     //StaticJsonBuffer<1024> jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
@@ -380,7 +380,7 @@ bool AsyncFSWebServer::save_config() {
 #ifndef RELEASE
     String temp;
     json.prettyPrintTo(temp);
-    Serial.println(temp);
+    DEBUGLOG(temp.c_str());
 #endif
 
     json.printTo(configFile);
@@ -416,7 +416,7 @@ bool AsyncFSWebServer::loadHTTPAuth() {
     // use configFile.readString instead.
     configFile.readBytes(buf.get(), size);
     configFile.close();
-    Serial.printf("JSON secret file size: %d bytes\n", size);
+    DEBUGLOG("JSON secret file size: %d bytes\n", size);
     DynamicJsonBuffer jsonBuffer(256);
     //StaticJsonBuffer<256> jsonBuffer;
     JsonObject& json = jsonBuffer.parseObject(buf.get());
@@ -425,8 +425,8 @@ bool AsyncFSWebServer::loadHTTPAuth() {
 #ifndef RELEASE
         String temp;
         json.prettyPrintTo(temp);
-        Serial.println(temp);
-        Serial.println(F("Failed to parse secret file"));
+        DEBUGLOG(temp.c_str());
+        DEBUGLOG("Failed to parse secret file\n");
 #endif // RELEASE
         _httpAuth.auth = false;
         return false;
@@ -434,13 +434,13 @@ bool AsyncFSWebServer::loadHTTPAuth() {
 #ifndef RELEASE
     String temp;
     json.prettyPrintTo(temp);
-    Serial.println(temp);
+    DEBUGLOG(temp.c_str());
 #endif // RELEASE
 
     _httpAuth.auth = json["auth"];
     _httpAuth.wwwUsername = json["user"].as<String>();
     _httpAuth.wwwPassword = json["pass"].as<String>();
-
+#ifndef RELEASE
     Serial.println(_httpAuth.auth ? F("Secret initialized.") : F("Auth disabled."));
     if (_httpAuth.auth) {
         Serial.printf("User: %s\r\n", _httpAuth.wwwUsername.c_str());
@@ -448,7 +448,7 @@ bool AsyncFSWebServer::loadHTTPAuth() {
     }
     Serial.printf(__PRETTY_FUNCTION__);
     Serial.printf("\r\n");
-
+#endif
     return true;
 }
 
@@ -494,7 +494,7 @@ bool AsyncFSWebServer::configureWifi() {
         delay(1000);
         timeout--;
         if (timeout == 0)
-            return false;
+            break; //leave loop
         Serial.print(".");
     }
     //Start AccessPoint:
@@ -538,7 +538,7 @@ void AsyncFSWebServer::ConfigureOTA(String password) {
         Serial.println(password);
     }
 
-#ifndef RELEASE
+    //#ifndef RELEASE
     ArduinoOTA.onStart([]() {
         Serial.println("StartOTA");
     });
@@ -558,7 +558,7 @@ void AsyncFSWebServer::ConfigureOTA(String password) {
         else if (error == OTA_END_ERROR) Serial.println(F("End Failed"));
         });
     Serial.println(F("OTA Ready"));
-#endif // RELEASE
+    //#endif // RELEASE
     ArduinoOTA.begin();
 }
 
@@ -602,7 +602,7 @@ void AsyncFSWebServer::onWiFiDisconnected(WiFiEventStationModeDisconnected data)
     //    if ((int)((millis() - wifiDisconnectedSince) / 1000)>30) {
     //    Serial.println("stop scanning");
     //     WiFi.enableSTA (false);
-}
+    //}
 }
 
 void AsyncFSWebServer::handleFileList(AsyncWebServerRequest *request) {
@@ -779,7 +779,8 @@ void AsyncFSWebServer::send_network_configuration_values_html(AsyncWebServerRequ
     String values = "";
 
     values += "ssid|" + (String) _config.ssid + "|input\n";
-    values += "password|" + (String) _config.password + "|input\n";
+    //    if(_httpAuth.auth)
+    //      {values += "password|" + (String) _config.password + "|input\n";}
     values += "ip_0|" + (String) _config.ip[0] + "|input\n";
     values += "ip_1|" + (String) _config.ip[1] + "|input\n";
     values += "ip_2|" + (String) _config.ip[2] + "|input\n";
@@ -919,7 +920,9 @@ void AsyncFSWebServer::send_mqtt_configuration_values_html(AsyncWebServerRequest
     values += "Host|" + (String) _config.MQTTHost + "|input\n";
     values += "Port|" + (String) _config.MQTTPort + "|input\n";
     values += "User|" + (String) _config.MQTTUser + "|input\n";
-    values += "Pass|" + (String) _config.MQTTpassword + "|input\n";
+    //    if (_httpAuth.auth){
+    //     values += "Pass|" + (String) _config.MQTTpassword + "|input\n";
+    //    }
     values += "en|" + (String) (_config.DeviceMode & MQTTEnable ? "checked" : "") + "|chk\n";
     values += "upd|" + (String) _config.MQTTRefreshInterval + "|input\n";
     values += "topic|" + (String) _config.MQTTTopic + "|input\n";
