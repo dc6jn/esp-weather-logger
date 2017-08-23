@@ -136,6 +136,7 @@ protected:
     long wifiDisconnectedSince = 0;
     String _browserMD5 = "";
     uint32_t _updateSize = 0;
+    time_t _browserTS = 0;
   
     WiFiEventHandler onStationModeConnectedHandler, onStationModeDisconnectedHandler;
     WiFiEventHandler onSoftAPModeStationConnectedhandler;
@@ -187,11 +188,13 @@ protected:
     void send_wwwauth_configuration_html(AsyncWebServerRequest *request);
     void send_update_firmware_values_html(AsyncWebServerRequest *request);
     void setUpdateMD5(AsyncWebServerRequest *request);
+    void settime(AsyncWebServerRequest *request); 
     void updateFirmware(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
 	void send_mqtt_configuration_values_html(AsyncWebServerRequest *request);
     static String urldecode(String input); // (based on https://code.google.com/p/avr-netino/)
     static unsigned char h2int(char c);
     static boolean checkRange(String Value);
+    void adjust_timestamps(time_t offset);
 };
 
 extern AsyncFSWebServer ESPHTTPServer;

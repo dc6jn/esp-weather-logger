@@ -1366,6 +1366,36 @@ void AsyncFSWebServer::setUpdateMD5(AsyncWebServerRequest *request) {
 
 }
 
+void AsyncFSWebServer::settime(AsyncWebServerRequest *request) {
+    _browserTS = 0;
+    Serial.printf("Arg number: %d\r\n", request->args());
+    if (request->args() > 0) // Read timestamp
+    {
+        for (uint8_t i = 0; i < request->args(); i++) {
+            Serial.printf("Arg %s: %s\r\n", request->argName(i).c_str(), request->arg(i).c_str());
+            if (request->argName(i) == "ts") {
+                _browserTS = request->arg(i).toInt();
+                Serial.println(_browserTS);
+                time_t old=now();
+                setTime(_browserTS);
+                time_t off=now()-old;
+                Serial.print(F("old Time:"));Serial.print(old);Serial.println(NTP.getTimeDateString(old));
+                Serial.print(F("new Time:"));Serial.print(now());Serial.println(NTP.getTimeDateString(now()));
+                
+                 adjust_timestamps(off);
+                continue;
+            }
+//            if (request->argName(i) == "size") {
+//                _updateSize = request->arg(i).toInt();
+//                Serial.printf("Update size: %l\r\n", _updateSize);
+//                continue;
+//            }
+        }
+        request->send(200, "text/html", "OK --> TS: " + _browserTS);
+    }
+
+}
+
 void AsyncFSWebServer::updateFirmware(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final) {
     // handler for the file upload, get's the sketch bytes, and writes
     // them through the Update object
@@ -1555,6 +1585,11 @@ void AsyncFSWebServer::serverInit() {
             return request->requestAuthentication();
         //Serial.println("md5?");
         this->setUpdateMD5(request);
+    });
+      on("/settime", [this](AsyncWebServerRequest * request) {
+        if (!this->checkAuth(request))
+            return request->requestAuthentication();
+        this->settime(request);
     });
     on("/update", HTTP_GET, [this](AsyncWebServerRequest * request) {
         if (!this->checkAuth(request))
@@ -1747,6 +1782,19 @@ bool AsyncFSWebServer::checkAuth(AsyncWebServerRequest *request) {
         return request->authenticate(_httpAuth.wwwUsername.c_str(), _httpAuth.wwwPassword.c_str());
     }
 
+}
+
+void AsyncFSWebServer::adjust_timestamps(time_t offset){
+  Serial.printf("Offset: %d\n",offset);
+  if (offset<10) return;
+  for (int i = 0; i < ulNoMeasValues; i++) {  
+      if (pMWbuf[i].timestamp<1500000000){
+        if (pMWbuf[i].timestamp>0){
+        pMWbuf[i].timestamp=pMWbuf[i].timestamp+offset;
+      }
+    }
+    //Serial.printf(" i=%d time=%d\n", i, pMWbuf[i].timestamp);
+  }
 }
 
 String AsyncFSWebServer::GetMacAddressLS() {

@@ -41,7 +41,8 @@
                 if (once)
                     return;
                 // sleep(200).then(()=>{});
-
+                console.log(Date.now());
+                setValues('/settime?ts=' + Math.round(Date.now()/1000));
                 var xh = new XMLHttpRequest();
                 xh.responseType = "arraybuffer";
 
@@ -75,22 +76,12 @@
                                     try {
                                         var dataview = new DataView(buffer, i);
                                         ts = dataview.getUint32(0, true) * 1000; //timestamp in unix utc
-
-
                                         t = dataview.getInt16(4, true) / 100;
                                         p = dataview.getUint32(8, true) / 100;
                                         h = dataview.getUint16(12, true) / 100;
 
                                         if ((t != 0) && (p != 0) && (h != 0)) {
-                                            if (ts < 1500000000000) {
-                                                ts = Date.now() - ts;
-                                                reverse = true;
-                                            } else {
-                                                off = d.getTimezoneOffset() * 60000;  //offset in Stunden * conversion
-                                                ts += off;
-                                            }
-                                            timestamp = new Date(ts);
-                                            console.log(i, ts, timestamp, t, p, h);
+
 
                                             if (ts < tsmin)
                                             {
@@ -122,9 +113,9 @@
                                                 hmax = h;
                                             }
 
-                                            temp.push({x: timestamp, y: t});
-                                            pressure.push({x: timestamp, y: p});
-                                            abshumid.push({x: timestamp, y: h});
+                                            temp.push({x: ts, y: t});
+                                            pressure.push({x: ts, y: p});
+                                            abshumid.push({x: ts, y: h});
                                             sucessful += 1;
                                         }
                                     } catch (err) {
@@ -134,7 +125,6 @@
 
                                     i = i + 16;
                                 }
-
 
                                 message.innerHTML = message.innerHTML + "<br>Erstellt am " + d.toLocaleDateString() + " um " + d.toLocaleTimeString() + " Uhr aus " + sucessful + "  von " + i / 16 + " Messwerten";
                                 message.innerHTML = message.innerHTML + "<br>Messzeitraum von " + getDateString(tsmin) + " bis " + getDateString(tsmax) + " " + tmin + "/" + tmax + "°C, " + hmin + "/" + hmax + " g/m³ H2O, " + pmin + "/" + pmax + "hPa"
