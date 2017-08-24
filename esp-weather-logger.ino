@@ -184,10 +184,7 @@ void setup() {
   bme.settings.humidOverSample = 3;
 
   //Calling .begin() causes the settings to be loaded
-  delay(10);  //Make sure sensor had enough time to turn on. BME280 requires 2ms to start up.
-  //Serial.println(bme.begin(), HEX);
-  //
-  delay(20);
+  delay(30);
   while (bme.begin() != 0x60) {
     Serial.println(F("Could not find BME280 sensor!"));
     delay(1000);
@@ -252,6 +249,7 @@ void loop() {
   if ( (millis() - count1s) >= 1000)
   {
     count1s = millis();
+    
     if (millis() - lastLogMillis >= ESPHTTPServer._config.LogFreq * 1000) {
       lastLogMillis = millis();
 

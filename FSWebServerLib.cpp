@@ -159,7 +159,24 @@ void AsyncFSWebServer::begin(FS* fs) {
     if (_config.updateNTPTimeEvery > 0) { // Enable NTP sync
         NTP.begin(_config.ntpServerName, _config.timezone / 10, _config.daylight);
         NTP.setInterval(15, _config.updateNTPTimeEvery * 60);
+
+    NTP.onNTPSyncEvent([](NTPSyncEvent_t ntpEvent) {
+		if (ntpEvent) {
+			Serial.print("Time Sync error: ");
+			if (ntpEvent == noResponse)
+				Serial.println("NTP server not reachable");
+			else if (ntpEvent == invalidAddress)
+				Serial.println("Invalid NTP server address");
+		}
+		else {
+			Serial.print("Got NTP time: ");
+			Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
+		}
+	});
     }
+
+
+
     // Register wifi Event to control connection LED
     onStationModeConnectedHandler = WiFi.onStationModeConnected([this](WiFiEventStationModeConnected data) {
         this->onWiFiConnected(data);
@@ -573,7 +590,6 @@ void AsyncFSWebServer::onWiFiConnected(WiFiEventStationModeConnected data) {
 
 void AsyncFSWebServer::onSoftAPModeStationConnected(WiFiEventSoftAPModeStationConnected data) {
     Serial.printf("Stations connected to soft-AP = %d\n", WiFi.softAPgetStationNum());
-    Serial.println("Station connected");
     WiFi.enableSTA(false);
     Serial.println("disable STA");
 }
@@ -581,9 +597,14 @@ void AsyncFSWebServer::onSoftAPModeStationConnected(WiFiEventSoftAPModeStationCo
 void AsyncFSWebServer::onSoftAPModeStationDisconnected(WiFiEventSoftAPModeStationDisconnected data) {
     Serial.printf("Stations connected to soft-AP = %d\n", WiFi.softAPgetStationNum());
     Serial.println("Station disconnect");
-    if (WiFi.softAPgetStationNum() < 1) {
+    if (WiFi.softAPgetStationNum() < 1) { //does not work :(
         WiFi.enableSTA(true);
         Serial.println("enable STA");
+
+ if (WiFi.status() != WL_CONNECTED) { // FIX FOR USING 2.3.0 CORE (only .begin if not connected)
+        WiFi.persistent(false); //-> http://www.forum-raspberrypi.de/Thread-esp8266-achtung-flash-speicher-schreibzugriff-bei-jedem-aufruf-von-u-a-wifi-begin
+        WiFi.begin(_config.ssid.c_str(), _config.password.c_str());
+    }
     }
 };
 

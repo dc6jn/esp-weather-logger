@@ -42,7 +42,7 @@
                     return;
                 // sleep(200).then(()=>{});
                 console.log(Date.now());
-                setValues('/settime?ts=' + Math.round(Date.now()/1000));
+                setValues('/settime?ts=' + Math.floor((new Date()).getTime() / 1000));
                 var xh = new XMLHttpRequest();
                 xh.responseType = "arraybuffer";
 
@@ -176,6 +176,36 @@
                                         {series: [{className: 'ct-series-d', name: 'Luftdruck', data: pressure}]}, options);
                             }
 
+
+
+// Tabellengenerator
+
+        //document.getElementById("numNets").innerHTML = array.length;
+        var tablediv = document.getElementById("datatable");
+        var table     = document.createElement("table");
+           table.border = '1';
+        var tablecols= document.createElement("colgroup");
+        tablecols.setAttribute("class","tabsp1");
+        tablecols.innerHTML = "<caption>Messwerte</caption>"+
+                "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>";
+
+    table.appendChild(tablecols);
+    var tablehead=document.createElement("thead");
+        tablehead.innerHTML= "<thead><tr><th>Datum</th><th>Temperatur in °C</th><th>absolute Luftfeuchte in g/m³ H<sub>2</sub>O</th><th>Luftdruck in hPa</th></tr></thead>"
+    table.appendChild(tablehead);
+       var tableBody = document.createElement('TBODY');
+
+        for (var i = 0; i < temp.length; i++) {
+            var row = document.createElement("tr");
+            row.setAttribute("class","tabsp1");
+           row.innerHTML = "<td>"+getDateString(temp[i].x)+"</td><td>"+temp[i].y+"</td><td>"+abshumid[i].y+"</td><td>"+pressure[i].y+"</td>";
+            tableBody.appendChild(row);
+        }
+       // table.innerHTML=table.innerHTML+"</tbody></table>";
+       table.appendChild(tableBody);
+        tablediv.appendChild(table);
+        table.setAttribute("ID", "#tabsp1");
+ //---------------------------------
                             // if(running)
                             //    setTimeout(loadValues, reloadPeriod);
                         } else
@@ -187,6 +217,7 @@
                 once = true;
             }
             ;
+
 
         </script>
     </head>
@@ -201,6 +232,8 @@
         <div class="ct-chart" id="chart3"></div>
         <div class="ct-chart" id="chart4"></div>
 
+
+<div id="datatable"></div>
         <a href="index.htm" class="btn btn--s">Index</a>
         <a href="admin.html" class="btn btn--s">&nbsp;Network Information</a>
         <a href="general.html" class="btn btn--s">General Configuration</a>
