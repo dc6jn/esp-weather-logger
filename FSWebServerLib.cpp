@@ -160,19 +160,18 @@ void AsyncFSWebServer::begin(FS* fs) {
         NTP.begin(_config.ntpServerName, _config.timezone / 10, _config.daylight);
         NTP.setInterval(15, _config.updateNTPTimeEvery * 60);
 
-    NTP.onNTPSyncEvent([](NTPSyncEvent_t ntpEvent) {
-		if (ntpEvent) {
-			Serial.print("Time Sync error: ");
-			if (ntpEvent == noResponse)
-				Serial.println("NTP server not reachable");
-			else if (ntpEvent == invalidAddress)
-				Serial.println("Invalid NTP server address");
-		}
-		else {
-			Serial.print("Got NTP time: ");
-			Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
-		}
-	});
+        NTP.onNTPSyncEvent([](NTPSyncEvent_t ntpEvent) {
+            if (ntpEvent) {
+                Serial.print("Time Sync error: ");
+                if (ntpEvent == noResponse)
+                    Serial.println("NTP server not reachable");
+                else if (ntpEvent == invalidAddress)
+                    Serial.println("Invalid NTP server address");
+            } else {
+                Serial.print("Got NTP time: ");
+                Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
+            }
+        });
     }
 
 
@@ -601,10 +600,12 @@ void AsyncFSWebServer::onSoftAPModeStationDisconnected(WiFiEventSoftAPModeStatio
         WiFi.enableSTA(true);
         Serial.println("enable STA");
 
- if (WiFi.status() != WL_CONNECTED) { // FIX FOR USING 2.3.0 CORE (only .begin if not connected)
-        WiFi.persistent(false); //-> http://www.forum-raspberrypi.de/Thread-esp8266-achtung-flash-speicher-schreibzugriff-bei-jedem-aufruf-von-u-a-wifi-begin
-        WiFi.begin(_config.ssid.c_str(), _config.password.c_str());
-    }
+        if (WiFi.status() != WL_CONNECTED) { // FIX FOR USING 2.3.0 CORE (only .begin if not connected)
+            WiFi.disconnect();
+            WiFi.mode(WIFI_AP_STA);
+            WiFi.persistent(false); //-> http://www.forum-raspberrypi.de/Thread-esp8266-achtung-flash-speicher-schreibzugriff-bei-jedem-aufruf-von-u-a-wifi-begin
+            WiFi.begin(_config.ssid.c_str(), _config.password.c_str());
+        }
     }
 };
 
@@ -1397,20 +1398,24 @@ void AsyncFSWebServer::settime(AsyncWebServerRequest *request) {
             if (request->argName(i) == "ts") {
                 _browserTS = request->arg(i).toInt();
                 Serial.println(_browserTS);
-                time_t old=now();
+                time_t old = now();
                 setTime(_browserTS);
-                time_t off=now()-old;
-                Serial.print(F("old Time:"));Serial.print(old);Serial.println(NTP.getTimeDateString(old));
-                Serial.print(F("new Time:"));Serial.print(now());Serial.println(NTP.getTimeDateString(now()));
-                
-                 adjust_timestamps(off);
+                time_t off = now() - old;
+                Serial.print(F("old Time:"));
+                Serial.print(old);
+                Serial.println(NTP.getTimeDateString(old));
+                Serial.print(F("new Time:"));
+                Serial.print(now());
+                Serial.println(NTP.getTimeDateString(now()));
+
+                adjust_timestamps(off);
                 continue;
             }
-//            if (request->argName(i) == "size") {
-//                _updateSize = request->arg(i).toInt();
-//                Serial.printf("Update size: %l\r\n", _updateSize);
-//                continue;
-//            }
+            //            if (request->argName(i) == "size") {
+            //                _updateSize = request->arg(i).toInt();
+            //                Serial.printf("Update size: %l\r\n", _updateSize);
+            //                continue;
+            //            }
         }
         request->send(200, "text/html", "OK --> TS: " + _browserTS);
     }
@@ -1607,7 +1612,7 @@ void AsyncFSWebServer::serverInit() {
         //Serial.println("md5?");
         this->setUpdateMD5(request);
     });
-      on("/settime", [this](AsyncWebServerRequest * request) {
+    on("/settime", [this](AsyncWebServerRequest * request) {
         if (!this->checkAuth(request))
             return request->requestAuthentication();
         this->settime(request);
@@ -1805,17 +1810,17 @@ bool AsyncFSWebServer::checkAuth(AsyncWebServerRequest *request) {
 
 }
 
-void AsyncFSWebServer::adjust_timestamps(time_t offset){
-  Serial.printf("Offset: %d\n",offset);
-  if (offset<10) return;
-  for (int i = 0; i < ulNoMeasValues; i++) {  
-      if (pMWbuf[i].timestamp<1500000000){
-        if (pMWbuf[i].timestamp>0){
-        pMWbuf[i].timestamp=pMWbuf[i].timestamp+offset;
-      }
+void AsyncFSWebServer::adjust_timestamps(time_t offset) {
+    Serial.printf("Offset: %d\n", offset);
+    if (offset < 10) return;
+    for (int i = 0; i < ulNoMeasValues; i++) {
+        if (pMWbuf[i].timestamp < 1500000000) {
+            if (pMWbuf[i].timestamp > 0) {
+                pMWbuf[i].timestamp = pMWbuf[i].timestamp + offset;
+            }
+        }
+        //Serial.printf(" i=%d time=%d\n", i, pMWbuf[i].timestamp);
     }
-    //Serial.printf(" i=%d time=%d\n", i, pMWbuf[i].timestamp);
-  }
 }
 
 String AsyncFSWebServer::GetMacAddressLS() {
