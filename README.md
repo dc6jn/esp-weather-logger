@@ -1,5 +1,5 @@
 # esp-weather-logger
-![screen shot](./doc/charts.jpg)
+![screen shot](./doc/charts.png)
 A manual fork from https://github.com/gmag11/FSBrowserNG and  https://github.com/species5618/MQTT_ESP8266
 
 added support for bme280 sensors and improved data logging 
