@@ -1,5 +1,5 @@
 # esp-weather-logger
-![screen shot](https://github.com/dc6jn/esp-weather-logger/blob/master/doc/charts.jpg)
+![screen shot](./doc/charts.jpg)
 A manual fork from https://github.com/gmag11/FSBrowserNG and  https://github.com/species5618/MQTT_ESP8266
 
 added support for bme280 sensors and improved data logging 
@@ -16,3 +16,4 @@ I added support for bme280 sensors.
 
 Main goal of this fork was to implement data storage for past measurements.
 
+To create the charts [chartist](https://gionkunz.github.io/chartist-js/) is used.
