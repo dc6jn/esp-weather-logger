@@ -26,6 +26,9 @@
                     return datestring;
                 }
             }
+
+
+
             function sleepa(ms)
             {
                 var dt = new Date();
@@ -40,13 +43,41 @@
             function loadValues() {
                 if (once)
                     return;
-                // sleep(200).then(()=>{});
+                var progressBar;
+                var loadBtn;
+                var display;
+                progressBar = document.getElementById("progress");
+                loadBtn = document.getElementById("button");
+                display = document.getElementById("display");
+
+                loadBtn.addEventListener("click", function (e) {
+                    this.disabled = true;
+                    this.innerHTML = "Update";
+                    once = false;
+                    loadValues();
+                });
+                //sleep(1000).then(()=>{});
                 console.log(Date.now());
                 setValues('/settime?ts=' + Math.floor((new Date()).getTime() / 1000));
+                sleep(1000).then(() => {
+                });
                 var xh = new XMLHttpRequest();
                 xh.responseType = "arraybuffer";
 
                 xh.open("GET", "dat", true);
+                xh.onprogress = function (e) {
+                    if (e.lengthComputable) {
+                        progressBar.max = e.total;
+                        progressBar.value = e.loaded;
+                    }
+                };
+                xh.onloadstart = function (e) {
+                    progressBar.value = 0;
+                };
+                xh.onloadend = function (e) {
+                    progressBar.value = e.loaded;
+                    loadBtn.disabled = false;
+                };
                 xh.onreadystatechange = function () {
                     if (xh.readyState == 4) {
                         if (xh.status == 200) {
@@ -168,7 +199,7 @@
                                 };
 
                                 var chart1 = new Chartist.Line('#chart1',
-                                        {series: [{className: 'ct-series-a', name: 'Temperatur', data: temp}]}, options );
+                                        {series: [{className: 'ct-series-a', name: 'Temperatur', data: temp}]}, options);
 
                                 var chart2 = new Chartist.Line('#chart2',
                                         {series: [{className: 'ct-series-c', name: 'Feuchte', data: abshumid}]}, options);
@@ -179,43 +210,45 @@
 
 
 // Tabellengenerator
-        var tablediv = document.getElementById("minmax");
-        var table     = document.createElement("table");
-        table.innerHTML = "<caption>Grenzwerte</caption>"+
-                "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>"+
-    "<thead><tr><th>Wert</th><th>Minimum</th><th>Maximum</th><th>Einheit</th></tr></thead>"+
-         "<tr><td>Aufnahmezeitraum</td><td>"+getDateString(tsmin)+"</td><td>"+getDateString(tsmax)+"</td><td></td></tr>"+
-         "<tr><td>Temperatur</td><td>"+tmin+"</td><td>"+tmax+"</td><td>°C</td></tr>"+
-         "<tr><td>Luftfeuchte</td><td>"+hmin+"</td><td>"+hmax+"</td><td>g/m³</td></tr>"+
-         "<tr><td>Temperatur</td><td>"+pmin+"</td><td>"+pmax+"</td><td>hPa</td></tr>";
- tablediv.appendChild(table);
-        var tablediv = document.getElementById("datatable");
-        var table     = document.createElement("table");
-           table.border = '1';
-        var tablecols= document.createElement("colgroup");
-        tablecols.setAttribute("class","tabsp1");
-        tablecols.innerHTML = "<caption>Messwerte</caption>"+
-                "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>";
+                            var tablediv = document.getElementById("minmax");
+                            tablediv.innerHTML = "";
+                            var table = document.createElement("table");
+                            table.innerHTML = "<caption>Grenzwerte</caption>" +
+                                    "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>" +
+                                    "<thead><tr><th>Wert</th><th>Minimum</th><th>Maximum</th><th>Einheit</th></tr></thead>" +
+                                    "<tr><td>Aufnahmezeitraum</td><td>" + getDateString(tsmin) + "</td><td>" + getDateString(tsmax) + "</td><td></td></tr>" +
+                                    "<tr><td>Temperatur</td><td>" + tmin + "</td><td>" + tmax + "</td><td>°C</td></tr>" +
+                                    "<tr><td>Luftfeuchte</td><td>" + hmin + "</td><td>" + hmax + "</td><td>g/m³</td></tr>" +
+                                    "<tr><td>Temperatur</td><td>" + pmin + "</td><td>" + pmax + "</td><td>hPa</td></tr>";
+                            tablediv.appendChild(table);
+                            var tablediv = document.getElementById("datatable");
+                            tablediv.innerHTML = "";
+                            var table = document.createElement("table");
+                            table.border = '1';
+                            var tablecols = document.createElement("colgroup");
+                            tablecols.setAttribute("class", "tabsp1");
+                            tablecols.innerHTML = "<caption>Messwerte</caption>" +
+                                    "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>";
 
-    table.appendChild(tablecols);
-    var tablehead=document.createElement("thead");
-        tablehead.innerHTML= "<thead><tr><th>Datum</th><th>Temperatur in °C</th><th>absolute Luftfeuchte in g/m³ H<sub>2</sub>O</th><th>Luftdruck in hPa</th></tr></thead>"
-    table.appendChild(tablehead);
-       var tableBody = document.createElement('TBODY');
+                            table.appendChild(tablecols);
+                            var tablehead = document.createElement("thead");
+                            tablehead.innerHTML = "<thead><tr><th>Datum</th><th>Temperatur in °C</th><th>absolute Luftfeuchte in g/m³ H<sub>2</sub>O</th><th>Luftdruck in hPa</th></tr></thead>"
+                            table.appendChild(tablehead);
+                            var tableBody = document.createElement('TBODY');
 
-        for (var i = 0; i < temp.length; i++) {
-            var row = document.createElement("tr");
-            row.setAttribute("class","tabsp1");
-            var d = new Date(temp[i].x);
-           row.innerHTML = "<td>"+d.toISOString()+"</td><td>"+temp[i].y+"</td><td>"+abshumid[i].y+"</td><td>"+pressure[i].y+"</td>";
-            tableBody.appendChild(row);
-        }
-       // table.innerHTML=table.innerHTML+"</tbody></table>";
-       table.appendChild(tableBody);
-        tablediv.appendChild(table);
-        tablediv.style.display = 'none';
-        table.setAttribute("ID", "#tabsp1");
- //---------------------------------
+                            for (var i = 0; i < temp.length; i++) {
+                                var row = document.createElement("tr");
+                                row.setAttribute("class", "tabsp1");
+                                var d = new Date(temp[i].x);
+                                row.innerHTML = "<td>" + d.toISOString() + "</td><td>" + temp[i].y + "</td><td>" + abshumid[i].y + "</td><td>" + pressure[i].y + "</td>";
+                                tableBody.appendChild(row);
+                            }
+                            // table.innerHTML=table.innerHTML+"</tbody></table>";
+                            table.appendChild(tableBody);
+                            tablediv.appendChild(table);
+                            tablediv.style.display = 'none';
+                            table.setAttribute("ID", "#tabsp1");
+                            //---------------------------------
                             // if(running)
                             //    setTimeout(loadValues, reloadPeriod);
                         } else
@@ -227,36 +260,43 @@
                 once = true;
             }
             ;
-function exportToCsv() {
-        var filename="Wetterlog von "+Date.now()+".csv";
-       var csvFile = '';
- csvFile += "'Datum','Temperatur in °C','Luftfeuchte in g/m³','Luftdruck in hPa'\n\r";
-         for (var i = 0; i < temp.length; i++) {
-          var d = new Date(temp[i].x);
-           csvFile += "'"+d.toISOString()+"','"+temp[i].y+"','"+abshumid[i].y+"','"+pressure[i].y+"'\n\r";
-        }
-        var blob = new Blob([csvFile], { type: 'text/csv;charset=utf-8;' });
-        if (navigator.msSaveBlob) { // IE 10+
-            navigator.msSaveBlob(blob, filename);
-        } else {
-            var link = document.createElement("a");
-            if (link.download !== undefined) { // feature detection
-                // Browsers that support HTML5 download attribute
-                var url = URL.createObjectURL(blob);
-                link.setAttribute("href", url);
-                link.setAttribute("download", filename);
-                link.style.visibility = 'hidden';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
+
+
+            function exportToCsv() {
+                var filename = "Wetterlog von " + Date.now() + ".csv";
+                var csvFile = '';
+                csvFile += "'Datum','Temperatur in °C','Luftfeuchte in g/m³','Luftdruck in hPa'\n\r";
+                for (var i = 0; i < temp.length; i++) {
+                    var d = new Date(temp[i].x);
+                    csvFile += "'" + d.toISOString() + "','" + temp[i].y + "','" + abshumid[i].y + "','" + pressure[i].y + "'\n\r";
+                }
+                var blob = new Blob([csvFile], {type: 'text/csv;charset=utf-8;'});
+                if (navigator.msSaveBlob) { // IE 10+
+                    navigator.msSaveBlob(blob, filename);
+                } else {
+                    var link = document.createElement("a");
+                    if (link.download !== undefined) { // feature detection
+                        // Browsers that support HTML5 download attribute
+                        var url = URL.createObjectURL(blob);
+                        link.setAttribute("href", url);
+                        link.setAttribute("download", filename);
+                        link.style.visibility = 'hidden';
+                        document.body.appendChild(link);
+                        link.click();
+                        document.body.removeChild(link);
+                    }
+                }
             }
-        }
-    }
+
 
         </script>
     </head>
     <body id="index">
         <h1>Wetterdaten</h1>
+
+        <progress id="progress" value="0"></progress>
+        <button id="button">Refresh data</button>
+        <span id="display"></span>
         <div id="message"></div>
         <div id="minmax"></div>
         <p>Temperatur in °C</p>
@@ -266,13 +306,13 @@ function exportToCsv() {
         <p>Luftdruck in hPa</p>
         <div class="ct-chart" id="chart3"></div>
         <div class="ct-chart" id="chart4"></div>
-<button onclick="document.getElementById('datatable').style.display = 'inline';">Show Table</button>
-<button onclick="exportToCsv();">Save Values to csv-file</button>
-   <!--     <input type="checkbox"  onchange="
-        if(this.checked) {document.getElementById('datatable').style.display = 'inline'; }
-        else
-        { document.getElementById('datatable').style.display = 'none'; }"/></p>-->
-<div id="datatable"></div>
+        <button onclick="document.getElementById('datatable').style.display = 'inline';">Show Table</button>
+        <button onclick="exportToCsv();">Save Values to csv-file</button>
+        <!--     <input type="checkbox"  onchange="
+             if(this.checked) {document.getElementById('datatable').style.display = 'inline'; }
+             else
+             { document.getElementById('datatable').style.display = 'none'; }"/></p>-->
+        <div id="datatable"></div>
         <a href="index.htm" class="btn btn--s">Index</a>
         <a href="admin.html" class="btn btn--s">&nbsp;Network Information</a>
         <a href="general.html" class="btn btn--s">General Configuration</a>
