@@ -209,9 +209,9 @@ function init(){
 
 
 
-document.getElementById("ptemp").innerHTML="Temperatur in °C  min: "+tmin+"°C max: "+tmax+"°C";
-document.getElementById("phumid").innerHTML="absolute Luftfeuchte in g/m³  min: "+hmin+" max: "+hmax+"";
-document.getElementById("ppress").innerHTML="Luftdruck in hPa  min: "+pmin+"hPa max: "+pmax+"hPa";
+document.getElementById("ptemp").innerHTML="<strong>🌡 Temperatur in °C </strong>  ↓"+tmin+" ↑"+tmax+"";
+document.getElementById("phumid").innerHTML="<strong>💧 absolute Luftfeuchte in g/m³</strong>  ↓"+hmin+" ↑"+hmax+"";
+document.getElementById("ppress").innerHTML="<strong>🌀 Luftdruck in hPa</strong>  ↓"+pmin+" ↑"+pmax+"";
 // Tabellengenerator
                             var tablediv = document.getElementById("datatable");
                             tablediv.innerHTML = "";
