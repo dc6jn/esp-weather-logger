@@ -4,9 +4,9 @@
 #define _FSWEBSERVERLIB_h
 
 #if defined(ARDUINO) && ARDUINO >= 100
-    #include "Arduino.h"
+#include "Arduino.h"
 #else
-    #include "WProgram.h"
+#include "WProgram.h"
 #endif
 
 #include <ESP8266WiFi.h>
@@ -27,16 +27,15 @@ extern const byte PinModeShift[6];
 extern const byte PinModePin[6];
 //extern const string Topics[6];
 
-extern uint8_t ulMeasCount ;  // values already measured
+extern uint8_t ulMeasCount; // values already measured
 extern uint8_t ulNoMeasValues; // size of array
 extern uint8_t currentIndex;
 
-typedef struct
-{
-  time_t timestamp;
-  int16_t temp;
-  uint32_t pressure;
-  uint16_t humid;
+typedef struct {
+    time_t timestamp;
+    int16_t temp;
+    uint32_t pressure;
+    uint16_t humid;
 } MW;
 
 extern MW *pMWbuf;
@@ -69,11 +68,11 @@ float absFeuchte(float temp, float luftfeuchte, float pressure);
 #define CONFIG_FILE "/config.json"
 #define SECRET_FILE "/secret.json"
 
-
 typedef struct {
     String APssid = "ESP"; // ChipID is appended to this name
     String APpassword = myAPPASSWD;
     bool APenable = false; // AP disabled by default
+    bool auth; //use secure ap
 } strApConfig;
 
 typedef struct {
@@ -83,47 +82,45 @@ typedef struct {
 } strHTTPAuth;
 
 typedef struct {
-	String ssid;
-	String password;
-	IPAddress  ip;
-	IPAddress  netmask;
-	IPAddress  gateway;
-	IPAddress  dns;
-	bool dhcp;
-	String ntpServerName;
-	long updateNTPTimeEvery;
-	long timezone;
-	bool daylight;
-	String deviceName;
-	byte DeviceMode;
-	long PinModes;
-	String MQTTUser;
-	String MQTTpassword;
-	String MQTTHost;
-	int MQTTPort;
-	int MQTTRefreshInterval;
-	String MQTTTopic;
-	String ClientName;
-	int PWMFreq;
+    String ssid;
+    String password;
+    IPAddress ip;
+    IPAddress netmask;
+    IPAddress gateway;
+    IPAddress dns;
+    bool dhcp;
+    String ntpServerName;
+    long updateNTPTimeEvery;
+    long timezone;
+    bool daylight;
+    String deviceName;
+    byte DeviceMode;
+    long PinModes;
+    String MQTTUser;
+    String MQTTpassword;
+    String MQTTHost;
+    int MQTTPort;
+    int MQTTRefreshInterval;
+    String MQTTTopic;
+    String ClientName;
+    int PWMFreq;
     int LogFreq;
-	int pin3t;
-	int pin4t;
+    int pin3t;
+    int pin4t;
 
 } strConfig;
-
-
 
 class AsyncFSWebServer : public AsyncWebServer {
 public:
     AsyncFSWebServer(uint16_t port);
     void begin(FS* fs);
     void handle();
-	String GetMacAddressLS();
-	String zeroPad(int number);
-	strConfig _config;
-   bool configureWifiAP();
-    bool configureWifi();
-	int WiFiStatus();
+    String GetMacAddressLS();
+    String zeroPad(int number);
+    strConfig _config;
+    bool configureWifiAP();
+    bool configureWifi(bool save_permanent = false);
+    int WiFiStatus();
 
 
 
@@ -137,7 +134,7 @@ protected:
     String _browserMD5 = "";
     uint32_t _updateSize = 0;
     time_t _browserTS = 0;
-  
+
     WiFiEventHandler onStationModeConnectedHandler, onStationModeDisconnectedHandler;
     WiFiEventHandler onSoftAPModeStationConnectedhandler;
     WiFiEventHandler onSoftAPModeStationDisconnectedhandler;
@@ -155,7 +152,7 @@ protected:
     bool save_config();
     bool loadHTTPAuth();
     bool saveHTTPAuth();
-   
+
     void ConfigureOTA(String password);
     void serverInit();
 
@@ -181,16 +178,16 @@ protected:
     void send_NTP_configuration_values_html(AsyncWebServerRequest *request);
     void send_network_configuration_html(AsyncWebServerRequest *request);
     void send_general_configuration_html(AsyncWebServerRequest *request);
-	void send_NTP_configuration_html(AsyncWebServerRequest *request);
-	void send_MQTT_configuration_html(AsyncWebServerRequest *request);
+    void send_NTP_configuration_html(AsyncWebServerRequest *request);
+    void send_MQTT_configuration_html(AsyncWebServerRequest *request);
     void restart_esp(AsyncWebServerRequest *request);
     void send_wwwauth_configuration_values_html(AsyncWebServerRequest *request);
     void send_wwwauth_configuration_html(AsyncWebServerRequest *request);
     void send_update_firmware_values_html(AsyncWebServerRequest *request);
     void setUpdateMD5(AsyncWebServerRequest *request);
-    void settime(AsyncWebServerRequest *request); 
+    void settime(AsyncWebServerRequest *request);
     void updateFirmware(AsyncWebServerRequest *request, String filename, size_t index, uint8_t *data, size_t len, bool final);
-	void send_mqtt_configuration_values_html(AsyncWebServerRequest *request);
+    void send_mqtt_configuration_values_html(AsyncWebServerRequest *request);
     static String urldecode(String input); // (based on https://code.google.com/p/avr-netino/)
     static unsigned char h2int(char c);
     static boolean checkRange(String Value);

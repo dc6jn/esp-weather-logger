@@ -37,8 +37,12 @@ float absFeuchte(float temp, float luftfeuchte, float pressure) {
     //    v = log10(dd/6.1078);
     abs_feuchte1 = ((pressure * mol_dampf) / gas_konst) * (dd / temp_k);
     //abs_feuchte1 = (round(abs_feuchte1 * 10)) / 10;
+
+    //https://carnotcycle.wordpress.com/2012/08/04/how-to-convert-relative-humidity-to-absolute-humidity/  
+    //abs_feuchte1=6.112 * exp((17.67 * T)/(T+243.5)) * rh * 2.1674/(273.15+T)
     return abs_feuchte1;
 }
+
 
 
 const char Page_WaitAndReload[] PROGMEM = R"=====(
@@ -160,19 +164,18 @@ void AsyncFSWebServer::begin(FS* fs) {
         NTP.begin(_config.ntpServerName, _config.timezone / 10, _config.daylight);
         NTP.setInterval(15, _config.updateNTPTimeEvery * 60);
 
-    NTP.onNTPSyncEvent([](NTPSyncEvent_t ntpEvent) {
-		if (ntpEvent) {
-			Serial.print("Time Sync error: ");
-			if (ntpEvent == noResponse)
-				Serial.println("NTP server not reachable");
-			else if (ntpEvent == invalidAddress)
-				Serial.println("Invalid NTP server address");
-		}
-		else {
-			Serial.print("Got NTP time: ");
-			Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
-		}
-	});
+        NTP.onNTPSyncEvent([](NTPSyncEvent_t ntpEvent) {
+            if (ntpEvent) {
+                Serial.print("Time Sync error: ");
+                if (ntpEvent == noResponse)
+                    Serial.println("NTP server not reachable");
+                else if (ntpEvent == invalidAddress)
+                    Serial.println("Invalid NTP server address");
+            } else {
+                Serial.print("Got NTP time: ");
+                Serial.println(NTP.getTimeDateString(NTP.getLastNTPSync()));
+            }
+        });
     }
 
 
@@ -212,8 +215,8 @@ void AsyncFSWebServer::begin(FS* fs) {
     serverInit(); // Configure and start Web server
 
 
-    MDNS.begin(_config.deviceName.c_str()); // I've not got this to work. Need some investigation.
-    MDNS.addService("http", "tcp", 80);
+    //MDNS.begin(_config.deviceName.c_str()); // I've not got this to work. Need some investigation.
+    //MDNS.addService("http", "tcp", 80);
     ConfigureOTA(_httpAuth.wwwPassword.c_str());
     DEBUGLOG("END Setup\n");
 }
@@ -499,7 +502,7 @@ bool AsyncFSWebServer::configureWifi(bool save_permanent) {
     Serial.printf("Connecting to %s\r\n", _config.ssid.c_str());
     if (WiFi.status() != WL_CONNECTED) { // FIX FOR USING 2.3.0 CORE (only .begin if not connected)
         WiFi.persistent(save_permanent); //-> http://www.forum-raspberrypi.de/Thread-esp8266-achtung-flash-speicher-schreibzugriff-bei-jedem-aufruf-von-u-a-wifi-begin
-        WiFi.begin(_config.ssid.c_str(), _config.password.c_str(),2);
+        WiFi.begin(_config.ssid.c_str(), _config.password.c_str(), 2);
         if (!_config.dhcp) {
             Serial.println(F("NO DHCP"));
             WiFi.config(_config.ip, _config.gateway, _config.netmask, _config.dns);
@@ -596,7 +599,7 @@ void AsyncFSWebServer::onSoftAPModeStationConnected(WiFiEventSoftAPModeStationCo
 void AsyncFSWebServer::onSoftAPModeStationDisconnected(WiFiEventSoftAPModeStationDisconnected data) {
     Serial.printf("Stations connected to soft-AP = %d\n", WiFi.softAPgetStationNum());
     Serial.println("Station disconnected");
-    if (WiFi.softAPgetStationNum()<1) WiFi.mode(WIFI_AP_STA);
+    if (WiFi.softAPgetStationNum() < 1) WiFi.mode(WIFI_AP_STA);
 };
 
 void AsyncFSWebServer::onWiFiDisconnected(WiFiEventStationModeDisconnected data) {
@@ -611,11 +614,11 @@ void AsyncFSWebServer::onWiFiDisconnected(WiFiEventStationModeDisconnected data)
         wifiDisconnectedSince = millis();
     }
     Serial.printf("Disconnected for %ds\r\n", (int) ((millis() - wifiDisconnectedSince) / 1000));
-        if ((int)((millis() - wifiDisconnectedSince) / 1000)>30) {
+    if ((int) ((millis() - wifiDisconnectedSince) / 1000) > 30) {
         Serial.println("stop scanning");
-        WiFi.mode(WIFI_AP);// WiFi.enableSTA (false);
-        }
-        
+        WiFi.mode(WIFI_AP); // WiFi.enableSTA (false);
+    }
+
 }
 
 void AsyncFSWebServer::handleFileList(AsyncWebServerRequest *request) {
@@ -1389,20 +1392,24 @@ void AsyncFSWebServer::settime(AsyncWebServerRequest *request) {
             if (request->argName(i) == "ts") {
                 _browserTS = request->arg(i).toInt();
                 Serial.println(_browserTS);
-                time_t old=now();
+                time_t old = now();
                 setTime(_browserTS);
-                time_t off=now()-old;
-                Serial.print(F("old Time:"));Serial.print(old);Serial.println(NTP.getTimeDateString(old));
-                Serial.print(F("new Time:"));Serial.print(now());Serial.println(NTP.getTimeDateString(now()));
-                
-                 adjust_timestamps(off);
+                time_t off = now() - old;
+                Serial.print(F("old Time:"));
+                Serial.print(old);
+                Serial.println(NTP.getTimeDateString(old));
+                Serial.print(F("new Time:"));
+                Serial.print(now());
+                Serial.println(NTP.getTimeDateString(now()));
+
+                adjust_timestamps(off);
                 continue;
             }
-//            if (request->argName(i) == "size") {
-//                _updateSize = request->arg(i).toInt();
-//                Serial.printf("Update size: %l\r\n", _updateSize);
-//                continue;
-//            }
+            //            if (request->argName(i) == "size") {
+            //                _updateSize = request->arg(i).toInt();
+            //                Serial.printf("Update size: %l\r\n", _updateSize);
+            //                continue;
+            //            }
         }
         request->send(200, "text/html", "OK --> TS: " + _browserTS);
     }
@@ -1599,7 +1606,7 @@ void AsyncFSWebServer::serverInit() {
         //Serial.println("md5?");
         this->setUpdateMD5(request);
     });
-      on("/settime", [this](AsyncWebServerRequest * request) {
+    on("/settime", [this](AsyncWebServerRequest * request) {
         if (!this->checkAuth(request))
             return request->requestAuthentication();
         this->settime(request);
@@ -1655,7 +1662,7 @@ void AsyncFSWebServer::serverInit() {
     });
 #endif // HIDE_SECRET
 
-//#define HIDE_CONFIG
+    //#define HIDE_CONFIG
 #ifdef HIDE_CONFIG
     on(CONFIG_FILE, HTTP_GET, [this](AsyncWebServerRequest * request) {
         if (!this->checkAuth(request))
@@ -1670,6 +1677,7 @@ void AsyncFSWebServer::serverInit() {
     //get heap status, analog input value and all GPIO statuses in one json call
     on("/all", HTTP_GET, [](AsyncWebServerRequest * request) {
         String json = "{";
+        json += "\"ts\":\"" + String(now()) + "\",";
         json += "\"time\":\"" + NTP.getTimeStr() + "\",";
         json += "\"date\":\"" + NTP.getDateStr() + "\",";
         json += "\"heap\":" + String(ESP.getFreeHeap());
@@ -1677,8 +1685,6 @@ void AsyncFSWebServer::serverInit() {
         json += ", \"gpio\":" + String((uint32_t) (((GPI | GPO) & 0xFFFF) | ((GP16I & 0x01) << 16)));
         extern BME280 bme;
         float temp(NAN), relhum(NAN), abshum(NAN), pres(NAN);
-
-
         temp = bme.readTempC();
         pres = bme.readFloatPressure();
         relhum = bme.readFloatHumidity();
@@ -1742,7 +1748,7 @@ void AsyncFSWebServer::serverInit() {
 
 
     on("/dat", HTTP_GET, [this](AsyncWebServerRequest * request) {
-      Serial.print(F("dat request\n"));
+        Serial.print(F("dat request\n"));
         AsyncWebServerResponse *response = request->beginResponse(
                 String("text/plain"),
                 sizeof (MW) * ulNoMeasValues,
@@ -1751,37 +1757,37 @@ void AsyncFSWebServer::serverInit() {
                         // We have more to read than fits in maxLen Buffer
                         memcpy((char*) buffer, (char*) pMWbuf + alreadySent, maxLen);
                         return maxLen;
-                        Serial.printf("sent %d from %d Bytes\n",alreadySent,maxLen); 
+                        //Serial.printf("sent %d from %d Bytes\n",alreadySent,maxLen); 
                     }
                     // Ok, last chunk
                     memcpy((char*) buffer, (char*) pMWbuf + alreadySent, sizeof (MW) * ulNoMeasValues - alreadySent);
                     return (sizeof (MW) * ulNoMeasValues - alreadySent); // Return from here to end of indexhtml
                 }
         );
-        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        //response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
         request->send(response);
         Serial.println("dat request exit");
     });
     //---------------
-    on("/datc", HTTP_GET, [this](AsyncWebServerRequest * request) {
-
-        AsyncWebServerResponse *response = request->beginChunkedResponse(
-                "text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
-
-                    size_t arrLen = sizeof (MW) * ulNoMeasValues;
-                    size_t leftToWrite = arrLen - index;
-                    if (!leftToWrite)
-                        return 0; //end of transfer
-                        size_t willWrite = (leftToWrite > maxLen) ? maxLen : leftToWrite;
-                            memcpy(buffer, (char*) buffer + index, willWrite);
-                            index += willWrite;
-                        return willWrite;
-                    });
-
-        response->addHeader("Server", "MyServerString");
-        request->send(response);
-    });
-    //---------------
+    //    on("/datc", HTTP_GET, [this](AsyncWebServerRequest * request) {
+    //
+    //        AsyncWebServerResponse *response = request->beginChunkedResponse(
+    //                "text/plain", [](uint8_t *buffer, size_t maxLen, size_t index) -> size_t {
+    //
+    //                    size_t arrLen = sizeof (MW) * ulNoMeasValues;
+    //                    size_t leftToWrite = arrLen - index;
+    //                    if (!leftToWrite)
+    //                        return 0; //end of transfer
+    //                        size_t willWrite = (leftToWrite > maxLen) ? maxLen : leftToWrite;
+    //                            memcpy(buffer, (char*) buffer + index, willWrite);
+    //                            index += willWrite;
+    //                        return willWrite;
+    //                    });
+    //
+    //        response->addHeader("Server", "MyServerString");
+    //        request->send(response);
+    //    });
+    //    //---------------
 
 
     //°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°°
@@ -1801,17 +1807,17 @@ bool AsyncFSWebServer::checkAuth(AsyncWebServerRequest *request) {
 
 }
 
-void AsyncFSWebServer::adjust_timestamps(time_t offset){
-  Serial.printf("Offset: %d\n",offset);
-  if (offset<10) return;
-  for (int i = 0; i < ulNoMeasValues; i++) {  
-      if (pMWbuf[i].timestamp<1500000000){
-        if (pMWbuf[i].timestamp>0){
-        pMWbuf[i].timestamp=pMWbuf[i].timestamp+offset;
-      }
+void AsyncFSWebServer::adjust_timestamps(time_t offset) {
+    Serial.printf("Offset: %d\n", offset);
+    if (offset < 10) return;
+    for (int i = 0; i < ulNoMeasValues; i++) {
+        if (pMWbuf[i].timestamp < 1500000000) {
+            if (pMWbuf[i].timestamp > 0) {
+                pMWbuf[i].timestamp = pMWbuf[i].timestamp + offset;
+            }
+        }
+        //Serial.printf(" i=%d time=%d\n", i, pMWbuf[i].timestamp);
     }
-    //Serial.printf(" i=%d time=%d\n", i, pMWbuf[i].timestamp);
-  }
 }
 
 String AsyncFSWebServer::GetMacAddressLS() {
