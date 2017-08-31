@@ -196,7 +196,8 @@ function init(){
                                 }
 
                                 message.innerHTML = message.innerHTML + "<br>Erstellt am " + d.toLocaleDateString() + " um " + d.toLocaleTimeString() + " Uhr aus " + sucessful + "  von " + i / 16 + " Messwerten";
-                                //message.innerHTML = message.innerHTML + "<br>Messzeitraum von " + getDateString(tsmin) + " bis " + getDateString(tsmax) + " " + tmin + "/" + tmax + "°C, " + hmin + "/" + hmax + " g/m³ H2O, " + pmin + "/" + pmax + "hPa"
+                                dmin=new Date(tsmin);dmax=new Date(tsmax);
+                                message.innerHTML = message.innerHTML + "<br>im Messzeitraum vom " +dmin.toLocaleDateString()+" "+dmin.toLocaleTimeString() + " bis zum " + dmax.toLocaleDateString()+" "+dmax.toLocaleTimeString() +"";
                                 chart1 = new Chartist.Line('#chart1',
                                         {series: [{className: 'ct-series-a', name: 'Temperatur', data: temp}]}, options);
 
