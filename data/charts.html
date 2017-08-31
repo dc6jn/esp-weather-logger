@@ -263,7 +263,8 @@
 
 
             function exportToCsv() {
-                var filename = "Wetterlog von " + Date.now() + ".csv";
+                d= new Date();
+                var filename = "Wetterlog von " + d.toISOString().replace(/:\s*/g, ".") + ".csv";
                 var csvFile = '';
                 csvFile += "'Datum','Temperatur in °C','Luftfeuchte in g/m³','Luftdruck in hPa'\n\r";
                 for (var i = 0; i < temp.length; i++) {
