@@ -318,6 +318,7 @@ temp = bme.readTempC();
       abshum = absFeuchte(temp, relhum, pres);
       Serial.print(F("Time:"));Serial.print(now());Serial.print(" ");Serial.print(NTP.getTimeDateString(now()));
       Serial.print(F(" cidx ")); Serial.print(currentIndex);
+      Serial.print(F(" heap "));Serial.print(system_get_free_heap_size());
       Serial.print(F(" T: ")); Serial.print(temp);
       Serial.print(F(" rHum: ")); Serial.print(relhum);
       Serial.print(F(" aHum: ")); Serial.print(abshum);
