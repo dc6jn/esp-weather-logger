@@ -72,7 +72,7 @@ void callback(char* topic, byte* payload, unsigned int length) {
   Serial.print(message);
 }
 
-void reconnect() {
+bool reconnect() {
 
   if (ESPHTTPServer._config.MQTTRefreshInterval > 0) {
     Serial.print(F("Attempting MQTT connection..."));
@@ -96,13 +96,14 @@ void reconnect() {
       //client.subscribe("inTopic");
       MQTTclient.unsubscribe("#");
       MQTTclient.publish(("/" + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName + "/LWT").c_str(), "UP", 1);
+      return true;
     }
     else {
       Serial.print(F("failed, rc="));
       Serial.print(MQTTclient.state());
       Serial.print(F(" try again in 5 seconds\n"));
       // Wait 5 seconds before retrying
-      delay(5000);
+      return false;
     }
   }
 }
@@ -140,7 +141,7 @@ void setup() {
 
   //specify I2C address.  Can be 0x77(default) or 0x76
   bme.settings.commInterface = I2C_MODE;
-  bme.settings.I2CAddress = 0x77;
+  
   //***Operation settings*****************************//
 
   //renMode can be:
@@ -185,14 +186,29 @@ void setup() {
 
   //Calling .begin() causes the settings to be loaded
   delay(30);
+  bme.settings.I2CAddress = 0x77;
+  uint8_t timeout=10;
   while (bme.begin() != 0x60) {
-    Serial.println(F("Could not find BME280 sensor!"));
+    Serial.println(F("Could not find BME280 sensor @0x77!"));
     delay(1000);
+    timeout-=1;
+    if (timeout==0){
+      timeout=10;
+      bme.settings.I2CAddress = 0x76;
+      while (bme.begin() != 0x60) {
+        delay(1000);
+        timeout--;
+        if (timeout==0){
+          Serial.println(F("Could not find BME280 sensor @0x76!"));
+          break;
+        }
+    }
+  }
   }
   bme.reset();
   delay(20);
   while (bme.begin() != 0x60) {
-    Serial.println(F("Could not find BME280 sensor!"));
+    Serial.println(F("Problems with BME280!"));
     delay(1000);
   }
 
@@ -209,8 +225,6 @@ void setup() {
     MQTTclient.setServer(ESPHTTPServer._config.MQTTHost.c_str(), ESPHTTPServer._config.MQTTPort);
     MQTTclient.setCallback(callback);
   }
-
-
 
   pinMode(A0, INPUT);
 
@@ -259,7 +273,7 @@ void loop() {
       pres = bme.readFloatPressure();
       relhum = bme.readFloatHumidity();
       abshum = absFeuchte(temp, relhum, pres);
-      Serial.print(F("Time:"));Serial.print(NTP.getTimeDateString(now()));
+      Serial.print(F("Time:"));Serial.print(now());Serial.print(" ");Serial.print(NTP.getTimeDateString(now()));
       Serial.print(F(" cidx ")); Serial.print(currentIndex);
       Serial.print(F(" T: ")); Serial.print(temp);
       Serial.print(F(" rHum: ")); Serial.print(relhum);
@@ -283,6 +297,7 @@ void loop() {
 
   if ( (millis() - count10s) >= 10000)
   {
+     if (WiFi.status() == WL_CONNECTED) {
     handleMQTT();
     if (!TimeSync && NTP.getLastNTPSync() > 0)
     {
@@ -293,6 +308,7 @@ void loop() {
                            (NTP.getTimeStr() + " " + NTP.getDateStr()).c_str());
       }
     }
+     }
     //print to console:
 //    for (int i = 1; i <= ulNoMeasValues; i++) {
 //      int idx = (i + currentIndex) % ulNoMeasValues;
@@ -315,10 +331,14 @@ void loop() {
 }
 
 void handleMQTT() {
+   if (WiFi.status() != WL_CONNECTED) {
+    return;    
+   }
+
   if (ESPHTTPServer._config.MQTTRefreshInterval == 0) return;
   if (!MQTTclient.connected()) {
     Serial.println(F("try to connect mqtt Client"));
-    reconnect();
+    if (!reconnect()) return;
   }
   MQTTclient.loop();
   if (millis() - lastMQTTloop > ESPHTTPServer._config.MQTTRefreshInterval * 1000)
