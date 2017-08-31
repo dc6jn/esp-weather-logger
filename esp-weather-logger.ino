@@ -249,6 +249,7 @@ void setup() {
   count1s = millis();
   count10s = millis();
   mainTopic = mainTopic + (String)ESPHTTPServer._config.MQTTTopic + "/" + ESPHTTPServer._config.ClientName;
+  getData();
   Serial.print(F("ende setup"));
 
 }
@@ -269,27 +270,7 @@ void loop() {
 
       //Serial.print(NTP.getUptimeString());
 
-      temp = bme.readTempC();
-      pres = bme.readFloatPressure();
-      relhum = bme.readFloatHumidity();
-      abshum = absFeuchte(temp, relhum, pres);
-      Serial.print(F("Time:"));Serial.print(now());Serial.print(" ");Serial.print(NTP.getTimeDateString(now()));
-      Serial.print(F(" cidx ")); Serial.print(currentIndex);
-      Serial.print(F(" T: ")); Serial.print(temp);
-      Serial.print(F(" rHum: ")); Serial.print(relhum);
-      Serial.print(F(" aHum: ")); Serial.print(abshum);
-      Serial.print(F(" Druck: ")); Serial.println(pres / 100);
-//      if (TimeSync) {
-//        pMWbuf[currentIndex].timestamp = NTP.getTime();
-//      }
-//      else
-//      {
-        pMWbuf[currentIndex].timestamp = now();
-      //}
-      pMWbuf[currentIndex].temp = round(temp * 100);
-      pMWbuf[currentIndex].pressure = round(pres);
-      pMWbuf[currentIndex].humid = round(abshum * 100);
-      currentIndex = (currentIndex + 1) % ulNoMeasValues;
+      getData();
       
 
     }
@@ -330,6 +311,29 @@ void loop() {
   }
 }
 
+void getData(){
+temp = bme.readTempC();
+      pres = bme.readFloatPressure();
+      relhum = bme.readFloatHumidity();
+      abshum = absFeuchte(temp, relhum, pres);
+      Serial.print(F("Time:"));Serial.print(now());Serial.print(" ");Serial.print(NTP.getTimeDateString(now()));
+      Serial.print(F(" cidx ")); Serial.print(currentIndex);
+      Serial.print(F(" T: ")); Serial.print(temp);
+      Serial.print(F(" rHum: ")); Serial.print(relhum);
+      Serial.print(F(" aHum: ")); Serial.print(abshum);
+      Serial.print(F(" Druck: ")); Serial.println(pres / 100);
+//      if (TimeSync) {
+//        pMWbuf[currentIndex].timestamp = NTP.getTime();
+//      }
+//      else
+//      {
+        pMWbuf[currentIndex].timestamp = now();
+      //}
+      pMWbuf[currentIndex].temp = round(temp * 100);
+      pMWbuf[currentIndex].pressure = round(pres);
+      pMWbuf[currentIndex].humid = round(abshum * 100);
+      currentIndex = (currentIndex + 1) % ulNoMeasValues;
+      }
 void handleMQTT() {
    if (WiFi.status() != WL_CONNECTED) {
     return;    
