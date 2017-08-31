@@ -413,6 +413,7 @@ bool AsyncFSWebServer::loadHTTPAuth() {
     File configFile = _fs->open(SECRET_FILE, "r");
     if (!configFile) {
         DEBUGLOG("Failed to open secret file\r\n");
+        _apConfig.auth = false;
         _httpAuth.auth = false;
         _httpAuth.wwwUsername = "";
         _httpAuth.wwwPassword = "";
@@ -449,6 +450,7 @@ bool AsyncFSWebServer::loadHTTPAuth() {
         DEBUGLOG("Failed to parse secret file\n");
 #endif // RELEASE
         _httpAuth.auth = false;
+        _apConfig.auth = false;
         return false;
     }
 #ifndef RELEASE
@@ -456,15 +458,20 @@ bool AsyncFSWebServer::loadHTTPAuth() {
     json.prettyPrintTo(temp);
     DEBUGLOG(temp.c_str());
 #endif // RELEASE
-
+    _apConfig.auth = json["apauth"];
     _httpAuth.auth = json["auth"];
     _httpAuth.wwwUsername = json["user"].as<String>();
     _httpAuth.wwwPassword = json["pass"].as<String>();
 #ifndef RELEASE
     Serial.println(_httpAuth.auth ? F("Secret initialized.") : F("Auth disabled."));
+    Serial.println(_apConfig.auth ? F("AP Secret initialized.") : F("AP Auth disabled."));
     if (_httpAuth.auth) {
         Serial.printf("User: %s\r\n", _httpAuth.wwwUsername.c_str());
         Serial.printf("Pass: %s\r\n", _httpAuth.wwwPassword.c_str());
+    }
+    if (_apConfig.auth) {
+
+        Serial.printf("AP Pass: %s\r\n", _httpAuth.wwwPassword.c_str());
     }
     Serial.printf(__PRETTY_FUNCTION__);
     Serial.printf("\r\n");
@@ -482,7 +489,7 @@ bool AsyncFSWebServer::configureWifiAP() {
     //WiFi.disconnect();
     WiFi.mode(WIFI_AP_STA);
     String APname = _apConfig.APssid + (String) ESP.getChipId();
-    if (_httpAuth.auth) {
+    if (_apConfig.auth) {
         WiFi.softAP(APname.c_str(), _httpAuth.wwwPassword.c_str(), 11);
         Serial.printf("AP Pass enabled: %s\r\n", _httpAuth.wwwPassword.c_str());
 
@@ -519,7 +526,7 @@ bool AsyncFSWebServer::configureWifi(bool save_permanent) {
     }
     //Start AccessPoint:
     String APname = _apConfig.APssid + (String) ESP.getChipId();
-    if (_httpAuth.auth) {
+    if (_apConfig.auth) {
         WiFi.softAP(APname.c_str(), _httpAuth.wwwPassword.c_str(), WiFi.channel(0));
         Serial.printf("AP Pass enabled: %s\r\n", _httpAuth.wwwPassword.c_str());
 
@@ -1263,7 +1270,7 @@ void AsyncFSWebServer::restart_esp(AsyncWebServerRequest *request) {
 
 void AsyncFSWebServer::send_wwwauth_configuration_values_html(AsyncWebServerRequest *request) {
     String values = "";
-
+    values += "apauth|" + (String) (_apConfig.auth ? "checked" : "") + "|chk\n";
     values += "wwwauth|" + (String) (_httpAuth.auth ? "checked" : "") + "|chk\n";
     values += "wwwuser|" + (String) _httpAuth.wwwUsername + "|input\n";
     values += "wwwpass|" + (String) _httpAuth.wwwPassword + "|input\n";
@@ -1296,6 +1303,11 @@ void AsyncFSWebServer::send_wwwauth_configuration_html(AsyncWebServerRequest *re
                 Serial.printf("HTTP Auth enabled\r\n");
                 continue;
             }
+            if (request->argName(i) == "apauth") {
+                _apConfig.auth = true;
+                Serial.printf("AP Auth enabled\r\n");
+                continue;
+            }
         }
 
         saveHTTPAuth();
@@ -1312,6 +1324,7 @@ bool AsyncFSWebServer::saveHTTPAuth() {
     DynamicJsonBuffer jsonBuffer(256);
     //StaticJsonBuffer<256> jsonBuffer;
     JsonObject& json = jsonBuffer.createObject();
+    json["apauth"] = _apConfig.auth;
     json["auth"] = _httpAuth.auth;
     json["user"] = _httpAuth.wwwUsername;
     json["pass"] = _httpAuth.wwwPassword;
