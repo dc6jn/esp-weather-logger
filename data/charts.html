@@ -39,7 +39,45 @@
             function sleep(ms) {
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
+function init(){
+ // Initialize a Line chart in the container with the ID chart1
+                                x_options = {
+                                    type: Chartist.FixedScaleAxis,
+                                    divisor: 5,
+                                    labelInterpolationFnc: function (value) {
+                                        return getDateString(value);
+                                    }
+                                };
 
+                                options = {
+                                    axisX: {
+                                        type: Chartist.FixedScaleAxis,
+                                        divisor: 6,
+                                        labelInterpolationFnc: function (value) {
+                                            return getDateString(value);
+                                        },
+                                        showLabel: true,
+                                        showGrid: true
+                                    },
+                                    // Options for Y-Axis
+                                    axisY: {
+                                        showLabel: true,
+                                        showGrid: true,
+                                        onlyInteger: false
+                                    },
+                                    // Specify a fixed width for the chart as a string (i.e. '100px' or '50%')
+                                    width: undefined,
+                                    // Specify a fixed height for the chart as a string (i.e. '100px' or '50%')
+                                    height: undefined,
+                                    // If the line should be drawn or not
+                                    showLine: true,
+                                    // If dots should be drawn or not
+                                    showPoint: true,
+                                    showArea: true,
+                                    low: undefined,
+                                    high: undefined
+                                };
+}
             function loadValues() {
                 if (once)
                     return;
@@ -159,68 +197,21 @@
 
                                 message.innerHTML = message.innerHTML + "<br>Erstellt am " + d.toLocaleDateString() + " um " + d.toLocaleTimeString() + " Uhr aus " + sucessful + "  von " + i / 16 + " Messwerten";
                                 //message.innerHTML = message.innerHTML + "<br>Messzeitraum von " + getDateString(tsmin) + " bis " + getDateString(tsmax) + " " + tmin + "/" + tmax + "°C, " + hmin + "/" + hmax + " g/m³ H2O, " + pmin + "/" + pmax + "hPa"
-                                // Initialize a Line chart in the container with the ID chart1
-                                var x_options = {
-                                    type: Chartist.FixedScaleAxis,
-                                    divisor: 5,
-                                    labelInterpolationFnc: function (value) {
-                                        return getDateString(value);
-                                    }
-                                };
-
-                                var options = {
-                                    axisX: {
-                                        type: Chartist.FixedScaleAxis,
-                                        divisor: 6,
-                                        labelInterpolationFnc: function (value) {
-                                            return getDateString(value);
-                                        },
-                                        showLabel: true,
-                                        showGrid: true
-                                    },
-                                    // Options for Y-Axis
-                                    axisY: {
-                                        showLabel: true,
-                                        showGrid: true,
-                                        onlyInteger: false
-                                    },
-                                    // Specify a fixed width for the chart as a string (i.e. '100px' or '50%')
-                                    width: undefined,
-                                    // Specify a fixed height for the chart as a string (i.e. '100px' or '50%')
-                                    height: undefined,
-                                    // If the line should be drawn or not
-                                    showLine: true,
-                                    // If dots should be drawn or not
-                                    showPoint: true,
-                                    showArea: true,
-                                    reverseData: reverse,
-                                    low: undefined,
-                                    high: undefined
-                                };
-
-                                var chart1 = new Chartist.Line('#chart1',
+                                chart1 = new Chartist.Line('#chart1',
                                         {series: [{className: 'ct-series-a', name: 'Temperatur', data: temp}]}, options);
 
-                                var chart2 = new Chartist.Line('#chart2',
-                                        {series: [{className: 'ct-series-c', name: 'Feuchte', data: abshumid}]}, options);
-                                var chart3 = new Chartist.Line('#chart3',
-                                        {series: [{className: 'ct-series-d', name: 'Luftdruck', data: pressure}]}, options);
+                                chart2 = new Chartist.Line('#chart2',
+                                        {series: [{className: 'ct-series-g', name: 'Feuchte', data: abshumid}]}, options);
+                                chart3 = new Chartist.Line('#chart3',
+                                        {series: [{className: 'ct-series-m', name: 'Luftdruck', data: pressure}]}, options);
                             }
 
 
 
+document.getElementById("ptemp").innerHTML="Temperatur in °C  min: "+tmin+"°C max: "+tmax+"°C";
+document.getElementById("phumid").innerHTML="absolute Luftfeuchte in g/m³  min: "+hmin+" max: "+hmax+"";
+document.getElementById("ppress").innerHTML="Luftdruck in hPa  min: "+pmin+"hPa max: "+pmax+"hPa";
 // Tabellengenerator
-                            var tablediv = document.getElementById("minmax");
-                            tablediv.innerHTML = "";
-                            var table = document.createElement("table");
-                            table.innerHTML = "<caption>Grenzwerte</caption>" +
-                                    "<colgroup'><col class='tabsp2'></colgroup><colgroup><col class='tabsp3'><col><col class='tabsp4'></colgroup>" +
-                                    "<thead><tr><th>Wert</th><th>Minimum</th><th>Maximum</th><th>Einheit</th></tr></thead>" +
-                                    "<tr><td>Aufnahmezeitraum</td><td>" + getDateString(tsmin) + "</td><td>" + getDateString(tsmax) + "</td><td></td></tr>" +
-                                    "<tr><td>Temperatur</td><td>" + tmin + "</td><td>" + tmax + "</td><td>°C</td></tr>" +
-                                    "<tr><td>Luftfeuchte</td><td>" + hmin + "</td><td>" + hmax + "</td><td>g/m³</td></tr>" +
-                                    "<tr><td>Luftdruck</td><td>" + pmin + "</td><td>" + pmax + "</td><td>hPa</td></tr>";
-                            tablediv.appendChild(table);
                             var tablediv = document.getElementById("datatable");
                             tablediv.innerHTML = "";
                             var table = document.createElement("table");
@@ -300,11 +291,11 @@
         <span id="display"></span>
         <div id="message"></div>
         <div id="minmax"></div>
-        <p>Temperatur in °C</p>
+        <p id="ptemp">Temperatur in °C</p>
         <div class="ct-chart " id="chart1"></div>
-        <p>absolute Luftfeuchte in g/m³</p>
+        <p id="phumid">absolute Luftfeuchte in g/m³</p>
         <div class="ct-chart " id="chart2"></div>
-        <p>Luftdruck in hPa</p>
+        <p id="ppress">Luftdruck in hPa</p>
         <div class="ct-chart" id="chart3"></div>
         <div class="ct-chart" id="chart4"></div>
         <button onclick="document.getElementById('datatable').style.display = 'inline';">Show Table</button>
@@ -325,7 +316,7 @@
                     load("microajax.js", "js", function ()
                     {
                         load("chartist.js", "js", function ()
-                        {
+                        {init();
                             loadValues()
                         });
                     });
