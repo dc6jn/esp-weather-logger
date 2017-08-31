@@ -55,7 +55,7 @@ int  updateCounter[9] = { 0,0,0,0,0,0,0,0,0 }; //MQTT update interval counter ex
 
 int intMode[6] = { CHANGE, CHANGE, CHANGE, CHANGE, CHANGE, CHANGE };
 void handleMQTT();
-
+bool reconnect();
 typedef void(*FunctionPointer)();
 
 /*
