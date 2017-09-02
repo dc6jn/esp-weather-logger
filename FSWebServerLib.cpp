@@ -680,7 +680,7 @@ String getContentType(String filename, AsyncWebServerRequest *request) {
 }
 
 bool AsyncFSWebServer::handleFileRead(String path, AsyncWebServerRequest *request) {
-    Serial.printf("handleFileRead: %s\r\n", path.c_str());
+    //Serial.printf("handleFileRead: %s\r\n", path.c_str());
     if (CONNECTION_LED >= 0) {
         // CANNOT RUN DELAY() INSIDE CALLBACK
         flashLED(CONNECTION_LED, 1, 25); // Show activity on LED
@@ -693,19 +693,19 @@ bool AsyncFSWebServer::handleFileRead(String path, AsyncWebServerRequest *reques
         if (_fs->exists(pathWithGz)) {
             path += ".gz";
         }
-        Serial.print(F("Content type: "));
-        Serial.println(contentType);
+        //Serial.print(F("Content type: "));
+        //Serial.println(contentType);
         AsyncWebServerResponse *response = request->beginResponse(*_fs, path, contentType);
         if (path.endsWith(".gz"))
             response->addHeader("Content-Encoding", "gzip");
         //File file = SPIFFS.open(path, "r");
-        Serial.printf("File %s exist\r\n", path.c_str());
+        //Serial.printf("File %s exist\r\n", path.c_str());
         request->send(response);
-
+        //Serial.print("file sent");
         return true;
     } else
         Serial.print(F("Cannot find "));
-    Serial.print(path);
+    //Serial.print(path);
     return false;
 }
 
@@ -1424,7 +1424,7 @@ void AsyncFSWebServer::settime(AsyncWebServerRequest *request) {
             //                continue;
             //            }
         }
-        request->send(200, "text/html", "OK --> TS: " + _browserTS);
+        request->send(200, "text/html", "OK --> TS: " + String(_browserTS));
     }
 
 }
@@ -1603,6 +1603,10 @@ void AsyncFSWebServer::serverInit() {
         if (!this->handleFileRead("/admin.html", request))
             request->send(404, "text/plain", "FileNotFound");
     });
+    on("/charts", [this](AsyncWebServerRequest * request) {
+        if (!this->handleFileRead("/charts.html", request))
+            request->send(404, "text/plain", "FileNotFound");
+    });
     on("/system.html", [this](AsyncWebServerRequest * request) {
         if (!this->checkAuth(request))
             return request->requestAuthentication();
@@ -1777,7 +1781,8 @@ void AsyncFSWebServer::serverInit() {
                     return (sizeof (MW) * ulNoMeasValues - alreadySent); // Return from here to end of indexhtml
                 }
         );
-        //response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Cache-Control", "no-cache, no-store, must-revalidate");
+        response->addHeader("Server", "ESP");
         request->send(response);
         Serial.println("dat request exit");
     });

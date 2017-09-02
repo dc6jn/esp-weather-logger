@@ -40,6 +40,13 @@
                 return new Promise(resolve => setTimeout(resolve, ms));
             }
 function init(){
+ timeBtn = document.getElementById("btime");
+
+                timeBtn.addEventListener("click", function (e) {
+                    this.disabled = true;
+                    setValues('/settime?ts=' + Math.floor((new Date()).getTime() / 1000));
+                    console.log("Set time");
+                });
  // Initialize a Line chart in the container with the ID chart1
                                 x_options = {
                                     type: Chartist.FixedScaleAxis,
@@ -96,7 +103,7 @@ function init(){
                 });
                 //sleep(1000).then(()=>{});
                 console.log(Date.now());
-                setValues('/settime?ts=' + Math.floor((new Date()).getTime() / 1000));
+                //setValues('/settime?ts=' + Math.floor((new Date()).getTime() / 1000));
                 sleep(1000).then(() => {
                 });
                 var xh = new XMLHttpRequest();
@@ -288,7 +295,7 @@ document.getElementById("ppress").innerHTML="<strong>🌀 Luftdruck in hPa</stro
         <h1>Wetterdaten</h1>
 
         <progress id="progress" value="0"></progress>
-        <button id="button">Refresh data</button>
+        <button id="button">Refresh data</button><button id="btime">Set Time</button>
         <span id="display"></span>
         <div id="message"></div>
         <div id="minmax"></div>
